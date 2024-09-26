@@ -1,7 +1,6 @@
 # name: Nim
 # author: Guilhem "Nim" Saurel − https://github.com/nim65s/dotfiles/
 
-
 function fish_prompt
     # This prompt shows:
     # - green lines if the last return command is OK, red otherwise
@@ -104,12 +103,11 @@ function fish_prompt
         _nim_prompt_wrapper $retc '' $mode
     end
 
-
     # Virtual Environment
     set -q VIRTUAL_ENV_DISABLE_PROMPT
     or set -g VIRTUAL_ENV_DISABLE_PROMPT true
     set -q VIRTUAL_ENV
-    and _nim_prompt_wrapper $retc V (basename "$VIRTUAL_ENV")
+    and _nim_prompt_wrapper $retc V (path basename "$VIRTUAL_ENV")
 
     # git
     set -l prompt_git (fish_git_prompt '%s')
@@ -118,7 +116,7 @@ function fish_prompt
 
     # Battery status
     type -q acpi
-    and test (acpi -a 2> /dev/null | string match -r off)
+    and acpi -a 2>/dev/null | string match -rq off
     and _nim_prompt_wrapper $retc B (acpi -b | cut -d' ' -f 4-)
 
     # New line

@@ -59,7 +59,7 @@ highlight_language = "fish-docs-samples"
 # -- Project information -----------------------------------------------------
 
 project = "fish-shell"
-copyright = "2022, fish-shell developers"
+copyright = "2024, fish-shell developers"
 author = "fish-shell developers"
 issue_url = "https://github.com/fish-shell/fish-shell/issues"
 
@@ -113,7 +113,7 @@ html_theme_path = ["."]
 html_theme = "python_docs_theme"
 
 # Shared styles across all doc versions.
-html_css_files = ["/docs/shared/style.css"]
+html_css_files = []
 
 # Don't add a weird "_sources" directory
 html_copy_source = False
@@ -178,6 +178,8 @@ def get_command_description(path, name):
 # Unbreak it (#7996)
 man_make_section_directory = False
 
+man_show_urls = True
+
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
@@ -187,6 +189,7 @@ man_pages = [
     ("interactive", "fish-interactive", "", [author], 1),
     ("relnotes", "fish-releasenotes", "", [author], 1),
     ("completions", "fish-completions", "", [author], 1),
+    ("prompt", "fish-prompt-tutorial", "", [author], 1),
     (
         "fish_for_bash_users",
         "fish-for-bash-users",

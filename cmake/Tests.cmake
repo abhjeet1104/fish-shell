@@ -1,13 +1,6 @@
 # This adds ctest support to the project
 enable_testing()
 
-# By default, ctest runs tests serially
-if(NOT CTEST_PARALLEL_LEVEL)
-  include(ProcessorCount)
-  ProcessorCount(CORES)
-  set(CTEST_PARALLEL_LEVEL ${CORES})
-endif()
-
 # Put in a tests folder to reduce the top level targets in IDEs.
 set(CMAKE_FOLDER tests)
 
@@ -24,8 +17,6 @@ set(SKIP_RETURN_CODE 125)
 #    running `make test` does not require any of the binaries to be built before testing.
 #  * The only way to have a test depend on a binary is to add a fake test with a name like
 #    "build_fish" that executes CMake recursively to build the `fish` target.
-#  * It is not possible to set top-level CTest options/settings such as CTEST_PARALLEL_LEVEL from
-#    within the CMake configuration file.
 #  * Circling back to the point about individual tests not being actual Makefile targets, CMake does
 #    not offer any way to execute a named test via the `make`/`ninja`/whatever interface; the only
 #    way to manually invoke test `foo` is to to manually run `ctest` and specify a regex matching
@@ -33,11 +24,11 @@ set(SKIP_RETURN_CODE 125)
 
 # The top-level test target is "fish_run_tests".
 add_custom_target(fish_run_tests
-  COMMAND env CTEST_PARALLEL_LEVEL=${CTEST_PARALLEL_LEVEL} FISH_FORCE_COLOR=1
+  COMMAND env FISH_FORCE_COLOR=1
           FISH_SOURCE_DIR=${CMAKE_SOURCE_DIR}
           ${CMAKE_CTEST_COMMAND} --force-new-ctest-process # --verbose
           --output-on-failure --progress
-  DEPENDS fish_tests tests_buildroot_target
+  DEPENDS tests_dir funcs_dir tests_buildroot_target
   USES_TERMINAL
 )
 
@@ -50,25 +41,8 @@ if(POLICY CMP0037)
 endif()
 cmake_policy(POP)
 
-# Build the low-level tests code
-add_executable(fish_tests EXCLUDE_FROM_ALL
-               src/fish_tests.cpp)
-fish_link_deps_and_sign(fish_tests)
-
 # The "test" directory.
 set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
-
-# CMake doesn't really support dynamic test discovery where a test harness is executed to list the
-# tests it contains, making fish_tests.cpp's tests opaque to CMake (whereas littlecheck tests can be
-# enumerated from the filesystem). We used to compile fish_tests.cpp without linking against
-# anything (-Wl,-undefined,dynamic_lookup,--unresolved-symbols=ignore-all) to get it to print its
-# tests at configuration time, but that's a little too much dark CMake magic.
-#
-# We now identify tests by checking against a magic regex that's #define'd as a no-op C-side.
-file(READ "${CMAKE_SOURCE_DIR}/src/fish_tests.cpp" FISH_TESTS_CPP)
-string(REGEX MATCHALL "TEST_GROUP\\( *\"([^\"]+)\"" "LOW_LEVEL_TESTS" "${FISH_TESTS_CPP}")
-string(REGEX REPLACE "TEST_GROUP\\( *\"([^\"]+)\"" "\\1" "LOW_LEVEL_TESTS" "${LOW_LEVEL_TESTS}")
-list(REMOVE_DUPLICATES LOW_LEVEL_TESTS)
 
 # The directory into which fish is installed.
 set(TEST_INSTALL_DIR ${TEST_DIR}/buildroot)
@@ -93,8 +67,6 @@ if(NOT FISH_IN_TREE_BUILD)
                        ${CMAKE_SOURCE_DIR}/tests/ ${CMAKE_BINARY_DIR}/tests/
                        COMMENT "Copying test files to binary dir"
                        VERBATIM)
-
-  add_dependencies(fish_tests tests_dir funcs_dir)
 endif()
 
 # Copy littlecheck.py
@@ -108,12 +80,12 @@ set(CMAKE_XCODE_GENERATE_SCHEME 0)
 
 # CMake being CMake, you can't just add a DEPENDS argument to add_test to make it depend on any of
 # your binaries actually being built before `make test` is executed (requiring `make all` first),
-# and the only dependency a test can have is on another test. So we make building fish and
-# `fish_tests` prerequisites to our entire top-level `test` target.
+# and the only dependency a test can have is on another test. So we make building fish
+# prerequisites to our entire top-level `test` target.
 function(add_test_target NAME)
   string(REPLACE "/" "-" NAME ${NAME})
   add_custom_target("test_${NAME}" COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -R "^${NAME}$$"
-    DEPENDS fish_tests tests_buildroot_target USES_TERMINAL )
+    DEPENDS tests_dir funcs_dir tests_buildroot_target USES_TERMINAL )
 endfunction()
 
 add_custom_target(tests_buildroot_target
@@ -130,31 +102,12 @@ add_custom_target(tests_buildroot_target
                           ${TEST_ROOT_DIR}
                   DEPENDS fish fish_test_helper)
 
-# CMake less than 3.9.0 "fully supports" setting an exit code to denote a skipped test, but then
-# it just goes ahead and reports it as failed. Really?
-if(${CMAKE_VERSION} VERSION_LESS "3.9.0")
-  set(CMAKE_SKIPPED_HACK "env" "CMAKE_SKIPPED_HACK=1")
-else()
-  set(CMAKE_SKIPPED_HACK)
-endif()
-
-foreach(LTEST ${LOW_LEVEL_TESTS})
-  add_test(
-    NAME ${LTEST}
-    COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/tests/test_env.sh
-               ${CMAKE_BINARY_DIR}/fish_tests ${LTEST}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
-  set_tests_properties(${LTEST} PROPERTIES SKIP_RETURN_CODE ${SKIP_RETURN_CODE})
-  add_test_target("${LTEST}")
-endforeach(LTEST)
-
 FILE(GLOB FISH_CHECKS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/tests/checks/*.fish)
 foreach(CHECK ${FISH_CHECKS})
   get_filename_component(CHECK_NAME ${CHECK} NAME)
   get_filename_component(CHECK ${CHECK} NAME_WE)
   add_test(NAME ${CHECK_NAME}
-    COMMAND ${CMAKE_SKIPPED_HACK} sh ${CMAKE_CURRENT_BINARY_DIR}/tests/test_driver.sh
+    COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/tests/test_driver.sh
                ${CMAKE_CURRENT_BINARY_DIR}/tests/test.fish ${CHECK}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests
   )
@@ -167,7 +120,7 @@ FILE(GLOB PEXPECTS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/tests/pexpects/*.py)
 foreach(PEXPECT ${PEXPECTS})
   get_filename_component(PEXPECT ${PEXPECT} NAME)
   add_test(NAME ${PEXPECT}
-    COMMAND ${CMAKE_SKIPPED_HACK} sh ${CMAKE_CURRENT_BINARY_DIR}/tests/test_driver.sh
+    COMMAND sh ${CMAKE_CURRENT_BINARY_DIR}/tests/test_driver.sh
       ${CMAKE_CURRENT_BINARY_DIR}/tests/interactive.fish ${PEXPECT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests
   )
@@ -175,3 +128,33 @@ foreach(PEXPECT ${PEXPECTS})
   set_tests_properties(${PEXPECT} PROPERTIES ENVIRONMENT FISH_FORCE_COLOR=1)
   add_test_target("${PEXPECT}")
 endforeach(PEXPECT)
+
+set(cargo_test_flags)
+# Rust stuff.
+if(DEFINED ASAN)
+    # Rust w/ -Zsanitizer=address requires explicitly specifying the --target triple or else linker
+    # errors pertaining to asan symbols will ensue.
+    if(NOT DEFINED Rust_CARGO_TARGET)
+        message(FATAL_ERROR "ASAN requires defining the CMake variable Rust_CARGO_TARGET to the
+            intended target triple")
+    endif()
+endif()
+if(DEFINED TSAN)
+    if(NOT DEFINED Rust_CARGO_TARGET)
+        message(FATAL_ERROR "TSAN requires defining the CMake variable Rust_CARGO_TARGET to the
+            intended target triple")
+    endif()
+endif()
+
+if(DEFINED Rust_CARGO_TARGET)
+    list(APPEND cargo_test_flags "--target" ${Rust_CARGO_TARGET})
+    list(APPEND cargo_test_flags "--lib")
+endif()
+
+add_test(
+    NAME "cargo-test"
+    COMMAND env ${VARS_FOR_CARGO} cargo test ${CARGO_FLAGS} --workspace --target-dir ${rust_target_dir} ${cargo_test_flags}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
+set_tests_properties("cargo-test" PROPERTIES SKIP_RETURN_CODE ${SKIP_RETURN_CODE})
+add_test_target("cargo-test")

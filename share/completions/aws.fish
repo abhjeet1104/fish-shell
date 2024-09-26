@@ -28,7 +28,7 @@ end
 # This accounts for things like `aws --debug s3 foo ... s3://...`
 function __s3_cmd_in
     set -l is_s3 0
-    set -l tokens (commandline -co)
+    set -l tokens (commandline -cx)
     for token in $tokens[2..-1]
         # Ignore switches everywhere
         if string match -qr -- "^--" $token
@@ -47,23 +47,6 @@ function __s3_cmd_in
 
         # Check if `aws s3` sub-sub-command is in $argv
         if contains $token $argv
-            return 0
-        else
-            return 1
-        end
-    end
-
-    return 1
-end
-
-# Determines whether the first non-switch argument to `aws` was in $argv
-function __aws_cmd_in
-    set -l tokens (commandline -co)
-    for token in $tokens[2..-1]
-        if string match -qr "^--" -- $token
-            # Ignore switches everywhere
-            continue
-        else if contains $token $argv
             return 0
         else
             return 1

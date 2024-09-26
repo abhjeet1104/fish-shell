@@ -3,7 +3,7 @@
 #
 
 function __dnf_list_installed_packages
-    dnf repoquery --cacheonly "$cur*" --qf "%{NAME}" --installed </dev/null
+    dnf repoquery --cacheonly "$cur*" --qf "%{name}" --installed </dev/null
 end
 
 function __dnf_list_available_packages
@@ -21,12 +21,12 @@ function __dnf_list_available_packages
         # This schema is bad, there is only a "pkg" field with the full
         #    packagename-version-release.fedorarelease.architecture
         # tuple. We are only interested in the packagename.
-        set results (sqlite3 /var/cache/dnf/packages.db "SELECT pkg FROM available WHERE pkg LIKE \"$tok%\"" 2>/dev/null |
+        set results (sqlite3 /var/cache/dnf/packages.db "SELECT pkg FROM available WHERE pkg LIKE '$tok%'" 2>/dev/null |
             string replace -r -- '-[^-]*-[^-]*$' '')
     else
         # In some cases dnf will ask for input (e.g. to accept gpg keys).
         # Connect it to /dev/null to try to stop it.
-        set results (dnf repoquery --cacheonly "$tok*" --qf "%{NAME}" --available </dev/null 2>/dev/null)
+        set results (dnf repoquery --cacheonly "$tok*" --qf "%{name}" --available </dev/null 2>/dev/null)
     end
     if set -q results[1]
         set results (string match -r -- '.*\\.rpm$' $files) $results
@@ -175,7 +175,6 @@ complete -c dnf -n __fish_use_subcommand -xa offline-upgrade -d "Prepare offline
 complete -c dnf -n "__fish_seen_subcommand_from offline-upgrade" -xa download -d "Download updates for offline upgrade"
 complete -c dnf -n "__fish_seen_subcommand_from offline-upgrade" -xa clean -d "Remove cached packages"
 complete -c dnf -n "__fish_seen_subcommand_from offline-upgrade" -xa reboot -d "Reboot and install packages"
-complete -c dnf -n "__fish_seen_subcommand_from offline-upgrade" -xa upgrade -d "Install cached packages without reboot"
 complete -c dnf -n "__fish_seen_subcommand_from offline-upgrade" -xa log -d "Show logs of upgrade attempts"
 
 # Provides

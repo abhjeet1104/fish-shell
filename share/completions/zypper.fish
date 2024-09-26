@@ -10,7 +10,7 @@ set -g __fish_zypper_download_modes only in-advance in-heaps as-needed
 set -g __fish_zypper_solver_focus_modes Job Installed Update
 
 function __fish_zypper_cmd_in_array
-    for i in (commandline -pco)
+    for i in (commandline -pcx)
         # -- is used to provide no options for contains
         # (if $i is equal to --optname without -- will be error)
         if contains -- $i $argv
@@ -53,7 +53,7 @@ function __fish_zypper_print_packages
     set -l repo
     set -l type
     set -l idx
-    set -l args (commandline -poc)
+    set -l args (commandline -pxc)
     while set -q args[1]
         switch $args[1]
             case -t --type
@@ -527,7 +527,7 @@ complete -c zypper -n __fish_zypper_is_subcommand_se -l file-list -s f -d 'Searc
 complete -c zypper -n __fish_zypper_is_subcommand_se -l search-descriptions -s d -d 'Search also in package summaries and descriptions'
 complete -c zypper -n __fish_zypper_is_subcommand_se -l case-sensitive -s C -d 'Perform case-sensitive search'
 complete -c zypper -n __fish_zypper_is_subcommand_se -l details -s s -d 'Show each available version in each repository on a separate line'
-complete -c zypper -n __fish_zypper_is_subcommand_se -l verbose -s s -d 'Like --details, with additional information where the search has matched (useful for search in dependencies)'
+complete -c zypper -n __fish_zypper_is_subcommand_se -l verbose -s s -d 'Like --details, with additional info (useful for search in dependencies)'
 complete -c zypper -n __fish_zypper_is_subcommand_se -l sort-by-name -d 'Sort packages by name (default)'
 complete -c zypper -n __fish_zypper_is_subcommand_se -l sort-by-repo -d 'Sort packages by repository'
 complete -c zypper -n __fish_zypper_is_subcommand_se -l repo -s r -rf -a "(__fish_zypper_print_repos -e)" -d 'Search only in the specified repository'

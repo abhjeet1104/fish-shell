@@ -12,6 +12,12 @@ Synopsis
 
 Description
 -----------
+
+.. only:: builder_man
+
+          NOTE: This page documents the fish builtin ``cd``.
+          To see the documentation on any non-fish versions, use ``command man cd``.
+
 ``cd`` changes the current working directory.
 
 If *DIRECTORY* is given, it will become the new directory. If no parameter is given, the :envvar:`HOME` environment variable will be used.
@@ -22,7 +28,7 @@ It is recommended to keep **.** as the first element of :envvar:`CDPATH`, or :en
 Fish will also try to change directory if given a command that looks like a directory (starting with **.**, **/** or **~**, or ending with **/**), without explicitly requiring **cd**.
 
 Fish also ships a wrapper function around the builtin **cd** that understands ``cd -`` as changing to the previous directory.
-See also :ref:`prevd <cmd-prevd>`.
+See also :doc:`prevd <prevd>`.
 This wrapper function maintains a history of the 25 most recently visited directories in the ``$dirprev`` and ``$dirnext`` global variables.
 If you make those universal variables your **cd** history is shared among all fish instances.
 

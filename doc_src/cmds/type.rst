@@ -13,6 +13,11 @@ Synopsis
 Description
 -----------
 
+.. only:: builder_man
+
+          NOTE: This page documents the fish builtin ``type``.
+          To see the documentation on any non-fish versions, use ``command man type``.
+
 With no options, :command:`type` indicates how each *NAME* would be interpreted if used as a command name.
 
 The following options are available:
@@ -21,10 +26,10 @@ The following options are available:
     Prints all of possible definitions of the specified names.
 
 **-s** or **--short**
-    Suppresses function expansion when used with no options or with **-a**/**--all**.
+    Don't print function definitions when used with no options or with **-a**/**--all**.
 
 **-f** or **--no-functions**
-    Suppresses function and builtin lookup.
+    Suppresses function lookup.
 
 **-t** or **--type**
     Prints ``function``, ``builtin``, or ``file`` if *NAME* is a shell function, builtin, or disk file, respectively.
@@ -43,6 +48,7 @@ The following options are available:
 
 The **-q**, **-p**, **-t** and **-P** flags (and their long flag aliases) are mutually exclusive. Only one can be specified at a time.
 
+``type`` returns 0 if at least one entry was found, 1 otherwise, and 2 for invalid options or option combinations.
 
 Example
 -------

@@ -1,6 +1,6 @@
 .. _cmd-complete:
 
-complete - edit command specific tab-completions
+complete - edit command-specific tab-completions
 ================================================
 
 Synopsis
@@ -8,7 +8,7 @@ Synopsis
 
 .. synopsis::
 
-    complete ((-c | --command) | (-p | --path)) COMMAND [OPTIONS] 
+    complete ((-c | --command) | (-p | --path)) COMMAND [OPTIONS]
     complete (-C | --do-complete) [--escape] STRING
 
 Description
@@ -34,10 +34,10 @@ The following options are available:
     Adds a short option to the completions list.
 
 **-l** or **--long-option** *LONG_OPTION*
-    Adds a GNU style long option to the completions list.
+    Adds a GNU-style long option to the completions list.
 
-**-o** or **--old-option** *LONG_OPTION*
-    Adds an old style long option to the completions list (see below for details).
+**-o** or **--old-option** *OPTION*
+    Adds an old-style short or long option (see below for details).
 
 **-a** or **--arguments** *ARGUMENTS*
     Adds the specified option arguments to the completions list.
@@ -53,9 +53,14 @@ The following options are available:
 
 **-r** or **--require-parameter**
     This completion must have an option argument, i.e. may not be followed by another option.
+    This means that the next argument is the argument to the option.
+    If this is *not* given, the option argument must be attached like ``-xFoo`` or ``--color=auto``.
 
 **-x** or **--exclusive**
     Short for **-r** and **-f**.
+
+**-d** or **--description** *DESCRIPTION*
+    Add a description for this completion, to be shown in the completion pager.
 
 **-w** or **--wraps** *WRAPPED_COMMAND*
     Causes the specified command to inherit completions from *WRAPPED_COMMAND* (see below for details).
@@ -72,13 +77,13 @@ The following options are available:
 **-h** or **--help**
     Displays help about using this command.
 
-Command specific tab-completions in ``fish`` are based on the notion of options and arguments. An option is a parameter which begins with a hyphen, such as ``-h``, ``-help`` or ``--help``. Arguments are parameters that do not begin with a hyphen. Fish recognizes three styles of options, the same styles as the GNU getopt library. These styles are:
+Command-specific tab-completions in ``fish`` are based on the notion of options and arguments. An option is a parameter which begins with a hyphen, such as ``-h``, ``-help`` or ``--help``. Arguments are parameters that do not begin with a hyphen. Fish recognizes three styles of options, the same styles as the GNU getopt library. These styles are:
 
 - Short options, like ``-a``. Short options are a single character long, are preceded by a single hyphen and can be grouped together (like ``-la``, which is equivalent to ``-l -a``). Option arguments may be specified by appending the option with the value (``-w32``), or, if ``--require-parameter`` is given, in the following parameter (``-w 32``).
 
-- Old style long options, like ``-Wall`` or ``-name``. Old style long options can be more than one character long, are preceded by a single hyphen and may not be grouped together. Option arguments are specified in the following parameter (``-ao null``) or after a ``=`` (``-ao=null``).
+- Old-style options, long like ``-Wall`` or ``-name`` or even short like ``-a``. Old-style options can be more than one character long, are preceded by a single hyphen and may not be grouped together. Option arguments are specified by default following a space (``-foo null``) or after ``=`` (``-foo=null``).
 
-- GNU style long options, like ``--colors``. GNU style long options can be more than one character long, are preceded by two hyphens, and can't be grouped together. Option arguments may be specified after a ``=`` (``--quoting-style=shell``), or, if ``--require-parameter`` is given, in the following parameter (``--quoting-style shell``).
+- GNU-style long options, like ``--colors``. GNU-style long options can be more than one character long, are preceded by two hyphens, and can't be grouped together. Option arguments may be specified after a ``=`` (``--quoting-style=shell``), or, if ``--require-parameter`` is given, in the following parameter (``--quoting-style shell``).
 
 Multiple commands and paths can be given in one call to define the same completions for multiple commands.
 
@@ -86,7 +91,7 @@ Multiple command switches and wrapped commands can also be given to define multi
 
 Invoking ``complete`` multiple times for the same command adds the new definitions on top of any existing completions defined for the command.
 
-When ``-a`` or ``--arguments`` is specified in conjunction with long, short, or old style options, the specified arguments are only completed as arguments for any of the specified options. If ``-a`` or ``--arguments`` is specified without any long, short, or old style options, the specified arguments are used when completing non-option arguments to the command (except when completing an option argument that was specified with ``-r`` or ``--require-parameter``).
+When ``-a`` or ``--arguments`` is specified in conjunction with long, short, or old-style options, the specified arguments are only completed as arguments for any of the specified options. If ``-a`` or ``--arguments`` is specified without any long, short, or old-style options, the specified arguments are used when completing non-option arguments to the command (except when completing an option argument that was specified with ``-r`` or ``--require-parameter``).
 
 Command substitutions found in ``ARGUMENTS`` should return a newline-separated list of arguments, and each argument may optionally have a tab character followed by the argument description. Description given this way override a description given with ``-d`` or ``--description``.
 
@@ -101,14 +106,14 @@ When ``complete`` is called without anything that would define or erase completi
 Examples
 --------
 
-The short style option ``-o`` for the ``gcc`` command needs a file argument:
+The short-style option ``-o`` for the ``gcc`` command needs a file argument:
 
 ::
 
     complete -c gcc -s o -r
 
 
-The short style option ``-d`` for the ``grep`` command requires one of ``read``, ``skip`` or ``recurse``:
+The short-style option ``-d`` for the ``grep`` command requires one of ``read``, ``skip`` or ``recurse``:
 
 ::
 
@@ -148,4 +153,6 @@ Now hub inherits all of the completions from git. Note this can also be specifie
 
    complete -c git
 
-Show all completions for ``git``.
+Shows all completions for ``git``.
+
+Any command ``foo`` that doesn't support grouping multiple short options in one string (not supporting ``-xf`` as short for ``-x -f``) or a short option and its value in one string (not supporting ``-d9`` instead of ``-d 9``) should be specified as a single-character old-style option instead of as a short-style option; for example, ``complete -c foo -o s; complete -c foo -o v`` would never suggest ``foo -ov`` but rather ``foo -o -v``.

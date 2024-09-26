@@ -70,7 +70,7 @@ function history --description "display or manipulate interactive command histor
     # command. This allows the flags to appear before or after the subcommand.
     if not set -q hist_cmd[1]
         and set -q argv[1]
-        if contains $argv[1] search delete merge save clear clear-session
+        if contains $argv[1] search delete merge save clear clear-session append
             set hist_cmd $argv[1]
             set -e argv[1]
         end
@@ -86,16 +86,16 @@ function history --description "display or manipulate interactive command histor
             and set search_mode --contains
 
             if isatty stdout
-                set -l pager less
-                set -q PAGER
-                and echo $PAGER | read -at pager
+                set -l pager (__fish_anypager)
+                and isatty stdout
+                or set pager cat
 
                 # If the user hasn't preconfigured less with the $LESS environment variable,
                 # we do so to have it behave like cat if output fits on one screen.
                 if not set -qx LESS
                     set -x LESS --quit-if-one-screen
                     # Also set --no-init for less < v530, see #8157.
-                    if test (less --version | string match -r 'less (\d+)')[2] -lt 530 2>/dev/null
+                    if type -q less; and test (less --version | string match -r 'less (\d+)')[2] -lt 530 2>/dev/null
                         set -x LESS $LESS --no-init
                     end
                 end
@@ -120,6 +120,7 @@ function history --description "display or manipulate interactive command histor
 
             if test $search_mode = --exact
                 builtin history delete $search_mode $_flag_case_sensitive -- $searchterm
+                builtin history save
                 return
             end
 
@@ -132,12 +133,13 @@ function history --description "display or manipulate interactive command histor
                 for i in (seq $found_items_count)
                     printf "[%s] %s\n" $i $found_items[$i]
                 end
-                echo ""
+                echo
                 echo "Enter nothing to cancel the delete, or"
-                echo "Enter one or more of the entry IDs separated by a space, or"
-                echo "Enter \"all\" to delete all the matching entries."
-                echo ""
-                read --local --prompt "echo 'Delete which entries? > '" choice
+                echo "Enter one or more of the entry IDs or ranges like '5..12', separated by a space."
+                echo "For example '7 10..15 35 788..812'."
+                echo "Enter 'all' to delete all the matching entries."
+                echo
+                read --local --prompt "echo 'Delete which entries? '" choice
                 echo ''
 
                 if test -z "$choice"
@@ -154,16 +156,42 @@ function history --description "display or manipulate interactive command histor
                     return
                 end
 
+                set -l choices
                 for i in (string split " " -- $choice)
-                    if test -z "$i"
-                        or not string match -qr '^[1-9][0-9]*$' -- $i
-                        or test $i -gt $found_items_count
-                        printf "Ignoring invalid history entry ID \"%s\"\n" $i
+                    # Expand ranges like 577..580
+                    if set -l inds (string match -rg '^([1-9][0-9]*)\.\.([1-9][0-9]*)' -- $i)
+                        if test $inds[1] -gt $found_items_count
+                            or test $inds[1] -gt $inds[2]
+                            printf (_ "Ignoring invalid history entry ID \"%s\"\n") $i
+                            continue
+                        end
+
+                        set -l indexes (seq $inds[1] 1 $inds[2])
+                        if set -q indexes[1]
+                            set -a choices $indexes
+                        end
                         continue
                     end
 
-                    printf "Deleting history entry %s: \"%s\"\n" $i $found_items[$i]
-                    builtin history delete --exact --case-sensitive -- "$found_items[$i]"
+                    if string match -qr '^[1-9][0-9]*$' -- $i
+                        and test $i -le $found_items_count
+                        set -a choices $i
+                    else
+                        printf (_ "Ignoring invalid history entry ID \"%s\"\n") $i
+                        continue
+                    end
+                end
+
+                if not set -q choices[1]
+                    return 1
+                end
+
+                set choices (path sort -u -- $choices)
+
+                echo Deleting choices: $choices
+                for x in $choices
+                    printf "Deleting history entry %s: \"%s\"\n" $x $found_items[$x]
+                    builtin history delete --exact --case-sensitive -- "$found_items[$x]"
                 end
                 builtin history save
             end
@@ -198,6 +226,13 @@ function history --description "display or manipulate interactive command histor
 
             builtin history clear-session -- $argv
             printf (_ "Command history for session cleared!\n")
+        case append
+            set -l newitem $argv
+            if not set -q argv[1]
+                read -P "Command: " newitem
+            end
+
+            builtin history append -- $newitem
         case '*'
             printf "%ls: unexpected subcommand '%ls'\n" $cmd $hist_cmd
             return 2

@@ -32,6 +32,7 @@ The following ``argparse`` options are available. They must appear before all *O
 
 **-x** or **--exclusive** *OPTIONS*
     A comma separated list of options that are mutually exclusive. You can use this more than once to define multiple sets of mutually exclusive options.
+    You give either the short or long version of each option, and you still need to otherwise define the options.
 
 **-N** or **--min-args** *NUMBER*
     The minimum number of acceptable non-option arguments. The default is zero.
@@ -57,12 +58,27 @@ To use this command, pass the option specifications (**OPTION_SPEC**), a mandato
 
 A simple example::
 
-    argparse --name=my_function 'h/help' 'n/name=' -- $argv
+    argparse 'h/help' 'n/name=' -- $argv
     or return
 
-If ``$argv`` is empty then there is nothing to parse and ``argparse`` returns zero to indicate success. If ``$argv`` is not empty then it is checked for flags ``-h``, ``--help``, ``-n`` and ``--name``. If they are found they are removed from the arguments and local variables called ``_flag_OPTION`` are set so the script can determine which options were seen. If ``$argv`` doesn't have any errors, like a missing mandatory value for an option, then ``argparse`` exits with a status of zero. Otherwise it writes appropriate error messages to stderr and exits with a status of one.
+If ``$argv`` is empty then there is nothing to parse and ``argparse`` returns zero to indicate success. If ``$argv`` is not empty then it is checked for flags ``-h``, ``--help``, ``-n`` and ``--name``. If they are found they are removed from the arguments and local variables called ``_flag_OPTION`` are set so the script can determine which options were seen. If ``$argv`` doesn't have any errors, like an unknown option or a missing mandatory value for an option, then ``argparse`` exits with a status of zero. Otherwise it writes appropriate error messages to stderr and exits with a status of one.
 
 The ``or return`` means that the function returns ``argparse``'s status if it failed, so if it goes on ``argparse`` succeeded.
+
+To use the flags argparse has extracted::
+
+    # Checking for _flag_h and _flag_help is equivalent
+    # We check if it has been given at least once
+    if set -ql _flag_h
+        echo "Usage: my_function [-h | --help] [-n | --name=NAME]" >&2
+        return 1
+    end
+
+    set -l myname somedefault
+    set -ql _flag_name[1]
+    and set myname $_flag_name[-1] # here we use the *last* --name=
+
+Any characters in the flag name that are not valid in a variable name (like ``-`` dashes) will be replaced with underscores.
 
 The ``--`` argument is required. You do not have to include any option specifications or arguments after the ``--`` but you must include the ``--``. For example, this is acceptable::
 
@@ -98,7 +114,7 @@ Each option specification consists of:
 
 - Optionally a ``!`` followed by fish script to validate the value. Typically this will be a function to run. If the exit status is zero the value for the flag is valid. If non-zero the value is invalid. Any error messages should be written to stdout (not stderr). See the section on :ref:`Flag Value Validation <flag-value-validation>` for more information.
 
-See the :ref:`fish_opt <cmd-fish_opt>` command for a friendlier but more verbose way to create option specifications.
+See the :doc:`fish_opt <fish_opt>` command for a friendlier but more verbose way to create option specifications.
 
 If a flag is not seen when parsing the arguments then the corresponding _flag_X var(s) will not be set.
 
@@ -163,14 +179,25 @@ The script should write any error messages to stdout, not stderr. It should retu
 
 Fish ships with a ``_validate_int`` function that accepts a ``--min`` and ``--max`` flag. Let's say your command accepts a ``-m`` or ``--max`` flag and the minimum allowable value is zero and the maximum is 5. You would define the option like this: ``m/max=!_validate_int --min 0 --max 5``. The default if you just call ``_validate_int`` without those flags is to simply check that the value is a valid integer with no limits on the min or max value allowed.
 
+Here are some examples of flag validations::
+
+  # validate that a path is a directory
+  argparse 'p/path=!test -d "$_flag_value"' -- --path $__fish_config_dir
+  # validate that a function does not exist
+  argparse 'f/func=!not functions -q "$_flag_value"' -- -f alias
+  # validate that a string matches a regex
+  argparse 'c/color=!string match -rq \'^#?[0-9a-fA-F]{6}$\' "$_flag_value"' -- -c 'c0ffee'
+  # validate with a validator function
+  argparse 'n/num=!_validate_int --min 0 --max 99' -- --num 42
+
 Example OPTION_SPECs
 --------------------
 
 Some *OPTION_SPEC* examples:
 
-- ``h/help`` means that both ``-h`` and ``--help`` are valid. The flag is a boolean and can be used more than once. If either flag is used then ``_flag_h`` and ``_flag_help`` will be set to the count of how many times either flag was seen.
+- ``h/help`` means that both ``-h`` and ``--help`` are valid. The flag is a boolean and can be used more than once. If either flag is used then ``_flag_h`` and ``_flag_help`` will be set to however either flag was seen, as many times as it was seen. So it could be set to ``-h``, ``-h`` and ``--help``, and ``count $_flag_h`` would yield "3".
 
-- ``help`` means that only ``--help`` is valid. The flag is a boolean and can be used more than once. If it is used then ``_flag_help`` will be set to the count of how many times the long flag was seen. Also ``h-help`` (with an arbitrary short letter) for backwards compatibility.
+- ``help`` means that only ``--help`` is valid. The flag is a boolean and can be used more than once. If it is used then ``_flag_help`` will be set as above. Also ``h-help`` (with an arbitrary short letter) for backwards compatibility.
 
 - ``longonly=`` is a flag ``--longonly`` that requires an option, there is no short flag or even short flag variable.
 
@@ -180,7 +207,7 @@ Some *OPTION_SPEC* examples:
 
 - ``name=+`` means that only ``--name`` is valid. It requires a value and can be used more than once. If the flag is seen then ``_flag_name`` will be set with the values associated with each occurrence.
 
-- ``x`` means that only ``-x`` is valid. It is a boolean that can be used more than once. If it is seen then ``_flag_x`` will be set to the count of how many times the flag was seen.
+- ``x`` means that only ``-x`` is valid. It is a boolean that can be used more than once. If it is seen then ``_flag_x`` will be set as above.
 
 - ``x=``, ``x=?``, and ``x=+`` are similar to the n/name examples above but there is no long flag alternative to the short flag ``-x``.
 
@@ -193,6 +220,44 @@ Some *OPTION_SPEC* examples:
 After parsing the arguments the ``argv`` variable is set with local scope to any values not already consumed during flag processing. If there are no unbound values the variable is set but ``count $argv`` will be zero.
 
 If an error occurs during argparse processing it will exit with a non-zero status and print error messages to stderr.
+
+Examples
+---------
+
+A simple use::
+
+    argparse h/help -- $argv
+    or return
+
+    if set -q _flag_help
+        # TODO: Print help here
+        return 0
+    end
+
+This just wants one option - ``-h`` / ``--help``. Any other option is an error. If it is given it prints help and exits.
+
+How :doc:`fish_add_path` parses its args::
+
+  argparse -x g,U -x P,U -x a,p g/global U/universal P/path p/prepend a/append h/help m/move v/verbose n/dry-run -- $argv
+
+There are a variety of boolean flags, all with long and short versions. A few of these cannot be used together, and that is what the ``-x`` flag is used for.
+``-x g,U`` means that ``--global`` and ``--universal`` or their short equivalents conflict, and if they are used together you get an error.
+In this case you only need to give the short or long flag, not the full option specification.
+
+After this it figures out which variable it should operate on according to the ``--path`` flag::
+
+    set -l var fish_user_paths
+    set -q _flag_path
+    and set var PATH
+
+    # ...
+
+    # Check for --dry-run.
+    # The "-" has been replaced with a "_" because
+    # it is not valid in a variable name
+    not set -ql _flag_dry_run
+    and set $var $result
+
 
 Limitations
 -----------

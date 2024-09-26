@@ -1,7 +1,6 @@
 # Load completions shared by various ssh tools like ssh, scp and sftp.
 __fish_complete_ssh scp
 
-
 # Helper functions to simplify the completions.
 function __scp2ssh_port_number
     # There is a silly inconsistency between the ssh and scp commands regarding the short flag name
@@ -37,26 +36,29 @@ end
 # scp specific completions
 #
 
-#
 # Inherit user/host completions from ssh
-#
-complete -c scp -d Remote -n "__fish_no_scp_remote_specified; and not string match -e : (commandline -ct)" -a "(complete -C'ssh ' | string replace -r '\t.*' ':')"
+complete -c scp -d Remote -n "__fish_no_scp_remote_specified; and not string match -e -- : (commandline -ct)" -a "(complete -C'ssh ' | string replace -r '\t.*' ':')"
 
-#
 # Local path
-#
 complete -c scp -d "Local Path" -n "not string match @ -- (commandline -ct)"
 
-#
 # Remote path
-#
 # Get the list of remote files from the scp target.
-complete -c scp -d "Remote Path" -f -n "commandline -ct | string match -e ':'" -a "
-(__scp_remote_target):( \
-        command ssh (__scp2ssh_port_number) -o 'BatchMode yes' (__scp_remote_target) ls\ -dp\ (__scp_remote_path_prefix | string unescape)\* 2>/dev/null |
-        string escape -n
-)
-"
+if string match -rq 'OpenSSH(_for_Windows)?_(?<major>\d+)\.*' -- (ssh -V 2>&1) && test "$major" -ge 9
+    complete -c scp -d "Remote Path" -f -n "commandline -ct | string match -e ':'" -a "
+    (__scp_remote_target):( \
+            command ssh (__scp2ssh_port_number) -o 'BatchMode yes' (__scp_remote_target) command\ ls\ -dp\ (__scp_remote_path_prefix)\* 2>/dev/null
+    )
+    "
+else
+    complete -c scp -d "Remote Path" -f -n "commandline -ct | string match -e ':'" -a "
+    (__scp_remote_target):( \
+            command ssh (__scp2ssh_port_number) -o 'BatchMode yes' (__scp_remote_target) command\ ls\ -dp\ (__scp_remote_path_prefix | string unescape)\* 2>/dev/null |
+            string escape -n
+    )
+    "
+end
+
 complete -c scp -s 3 -d "Copies between two remote hosts are transferred through the local host"
 complete -c scp -s B -d "Batch mode"
 complete -c scp -s D -x -d "Connect directly to a local SFTP server"

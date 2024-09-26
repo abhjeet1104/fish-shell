@@ -1,13 +1,6 @@
-# -DLOCALEDIR="${CMAKE_INSTALL_FULL_LOCALEDIR}"
-# -DPREFIX=L"${CMAKE_INSTALL_PREFIX}"
-# -DDATADIR=L"${CMAKE_INSTALL_FULL_DATADIR}"
-# -DSYSCONFDIR=L"${CMAKE_INSTALL_FULL_SYSCONFDIR}"
-# -DBINDIR=L"${CMAKE_INSTALL_FULL_BINDIR}"
-# -DDOCDIR=L"${CMAKE_INSTALL_FULL_DOCDIR}")
-
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
-set(PROGRAMS fish fish_indent fish_key_reader)
+set(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fish ${CMAKE_CURRENT_BINARY_DIR}/fish_indent ${CMAKE_CURRENT_BINARY_DIR}/fish_key_reader)
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(bindir ${CMAKE_INSTALL_BINDIR})
@@ -18,11 +11,6 @@ set(datadir ${CMAKE_INSTALL_FULL_DATADIR})
 file(RELATIVE_PATH rel_datadir ${CMAKE_INSTALL_PREFIX} ${datadir})
 
 set(docdir ${CMAKE_INSTALL_DOCDIR})
-
-# Comment at the top of some .in files
-set(configure_input
-"This file was generated from a corresponding .in file.\
- DO NOT MANUALLY EDIT THIS FILE!")
 
 set(rel_completionsdir "fish/vendor_completions.d")
 set(rel_functionsdir "fish/vendor_functions.d")
@@ -40,10 +28,19 @@ set(extra_confdir
     "${datadir}/${rel_confdir}"
     CACHE STRING "Path for extra configuration")
 
+
 # These are the man pages that go in system manpath; all manpages go in the fish-specific manpath.
 set(MANUALS ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish.1
             ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish_indent.1
-            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish_key_reader.1)
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish_key_reader.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-doc.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-tutorial.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-language.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-interactive.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-completions.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-prompt-tutorial.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-for-bash-users.1
+            ${CMAKE_CURRENT_BINARY_DIR}/user_doc/man/man1/fish-faq.1)
 
 # Determine which man page we don't want to install.
 # On OS X, don't install a man page for open, since we defeat fish's open
@@ -76,7 +73,7 @@ function(FISH_TRY_CREATE_DIRS)
   endforeach()
 endfunction(FISH_TRY_CREATE_DIRS)
 
-install(TARGETS ${PROGRAMS}
+install(PROGRAMS ${PROGRAMS}
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ
                     GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         DESTINATION ${bindir})
@@ -90,7 +87,6 @@ fish_create_dirs(${rel_datadir}/fish ${rel_datadir}/fish/completions
                  ${rel_datadir}/fish/man/man1 ${rel_datadir}/fish/tools
                  ${rel_datadir}/fish/tools/web_config
                  ${rel_datadir}/fish/tools/web_config/js
-                 ${rel_datadir}/fish/tools/web_config/partials
                  ${rel_datadir}/fish/tools/web_config/sample_prompts
                  ${rel_datadir}/fish/tools/web_config/themes
                  )
@@ -157,8 +153,6 @@ install(FILES ${MANUALS} DESTINATION ${mandir}/man1/ OPTIONAL)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/user_doc/html/ # Trailing slash is important!
         DESTINATION ${docdir} OPTIONAL)
 install(FILES CHANGELOG.rst DESTINATION ${docdir})
-
-install(FILES share/lynx.lss DESTINATION ${rel_datadir}/fish/)
 
 # These files are built by cmake/gettext.cmake, but using GETTEXT_PROCESS_PO_FILES's
 # INSTALL_DESTINATION leads to them being installed as ${lang}.gmo, not fish.mo

@@ -1,5 +1,8 @@
 #RUN: %fish %s
 #REQUIRES: command -v tmux
+#REQUIRES: uname -r | grep -qv Microsoft
+# disable on github actions because it's flakey
+#REQUIRES: test -z "$CI"
 
 isolated-tmux-start
 
@@ -74,3 +77,38 @@ isolated-tmux send-keys C-u echo Space old-arg Enter C-l foo2 Space Tab Tab M-.
 tmux-sleep
 isolated-tmux capture-pane -p
 # CHECK: prompt 5> foo2 aabc old-arg
+
+isolated-tmux send-keys C-u 'echo suggest this' Enter C-l
+tmux-sleep
+isolated-tmux send-keys 'echo sug' C-w C-z
+tmux-sleep
+isolated-tmux capture-pane -p
+# CHECK: prompt 6> echo suggest this
+
+isolated-tmux send-keys C-u 'bind ctrl-s forward-single-char' Enter C-l
+isolated-tmux send-keys 'echo suggest thi'
+tmux-sleep
+isolated-tmux send-keys C-s
+tmux-sleep
+isolated-tmux send-keys C-s
+tmux-sleep
+isolated-tmux capture-pane -p
+# CHECK: prompt 7> echo suggest this
+
+isolated-tmux send-keys C-u
+isolated-tmux send-keys 'echo sugg' C-a
+tmux-sleep
+isolated-tmux send-keys C-e M-f Space nothing
+tmux-sleep
+isolated-tmux capture-pane -p
+# CHECK: prompt 7> echo suggest nothing
+
+isolated-tmux send-keys C-u 'bind \cs forward-char-passive' Enter C-l
+isolated-tmux send-keys C-u 'bind \cb backward-char-passive' Enter C-l
+isolated-tmux send-keys C-u 'echo do not accept this' Enter C-l
+tmux-sleep
+isolated-tmux send-keys 'echo do not accept thi' C-b C-b DC C-b C-s 'h'
+tmux-sleep
+isolated-tmux send-keys C-s C-s C-s 'x'
+isolated-tmux capture-pane -p
+# CHECK: prompt 10> echo do not accept thix

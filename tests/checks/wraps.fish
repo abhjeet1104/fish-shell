@@ -11,9 +11,6 @@ complete -c testcommand --no-files -a normal
 complete -C'testcommand '
 # CHECK: normal
 
-# We get the same completion twice. TODO: fix this.
-# CHECK: normal
-
 # Test double wraps.
 complete -c testcommand0 -x -a crosswalk
 complete -c testcommand1 -x --wraps testcommand0
@@ -24,7 +21,7 @@ complete -C 'testcommand 0'
 # This tests that a call to complete from within a completion doesn't trigger
 # wrap chain explosion - #5638 again.
 function testcommand2_complete
-    set -l tokens (commandline -opc) (commandline -ct)
+    set -l tokens (commandline -xpc) (commandline -ct)
     set -e tokens[1]
     echo $tokens 1>&2
 end
@@ -39,8 +36,6 @@ complete -C'testcommand2 explicit '
 complete -c recvar --exclusive -a recvar_comp
 complete -c recvar --wraps 'A=B recvar'
 complete -C 'recvar '
-# CHECK: recvar_comp
-# We get the same completion twice. TODO: fix this.
 # CHECK: recvar_comp
 
 # Test that completions do not perform subcommands.
@@ -64,15 +59,15 @@ function do_print_good_bad
 end
 complete -c print_good_bad -x -a '(do_print_good_bad)'
 complete -C 'print_good_bad '
-# CHECK: GOOD:global_good
 # CHECK: BAD:global_bad
+# CHECK: GOOD:global_good
 
 # Key check is completions should expand GOOD but not BAD,
 # because GOOD is just a string but BAD contains a cmdsub
 # which may do arbitrary things.
 complete -C 'GOOD=local_good BAD=(launch_missiles) print_good_bad '
-# CHECK: GOOD:local_good
 # CHECK: BAD:
+# CHECK: GOOD:local_good
 
 # Completion should not have launched any missiles.
 echo $missile_count

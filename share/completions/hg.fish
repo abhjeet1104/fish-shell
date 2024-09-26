@@ -342,7 +342,7 @@ function __fish_hg_mq_enabled
 end
 
 function __fish_hg_get_command
-    set -l cmdline (commandline -poc)
+    set -l cmdline (commandline -pxc)
     set -e cmdline[1]
     set -l lasttoken ""
     for token in $cmdline
@@ -1306,7 +1306,7 @@ for cmd in she shel shelv shelve
     complete -c hg -n "__fish_hg_using_command $cmd" -s n -l name -x -d "use the given name for the shelved commit"
     complete -c hg -n "__fish_hg_using_command $cmd" -s p -l patch -d "output patches for changes (provide the names of the shelved changes as positional arguments)"
     complete -c hg -n "__fish_hg_using_command $cmd" -s i -l interactive -d "interactive mode, only works while creating a shelve"
-    complete -c hg -n "__fish_hg_using_command $cmd" -l stat -d "output diffstat-style summary of changes (provide the names of the shelved changes as positional arguments)"
+    complete -c hg -n "__fish_hg_using_command $cmd" -l stat -d "output diffstat-style summary of changes"
     complete -c hg -n "__fish_hg_using_command $cmd" -s I -l include -x -d "include names matching the given patterns"
     complete -c hg -n "__fish_hg_using_command $cmd" -s X -l exclude -x -d "exclude names matching the given patterns"
     complete -c hg -n "__fish_hg_using_command $cmd; and __fish_hg_mq_enabled" -l mq -d "operate on patch repository"

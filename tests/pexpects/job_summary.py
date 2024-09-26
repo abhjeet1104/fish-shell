@@ -15,6 +15,11 @@ from time import sleep
 from subprocess import call
 import os
 import signal
+import sys
+
+# Disable under SAN - keeps failing because the timing is too tight
+if "FISH_CI_SAN" in os.environ:
+    sys.exit(0)
 
 # Test job summary for interactive shells.
 expect_prompt()
@@ -40,7 +45,7 @@ expect_re("Job.*Group.*(CPU)?.*State.*Command")
 expect_re(".*running.*sleep 20 &")
 expect_prompt()
 sendline("echo $my_pid")
-m = expect_re("\d+\r\n")
+m = expect_re("\\d+\r\n")
 expect_prompt()
 os.kill(int(m.group()), signal.SIGTERM)
 expect_re("[0-9]+:0:sleep 20 &:SIGTERM:Polite quit request", timeout=20)

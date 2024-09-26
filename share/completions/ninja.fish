@@ -1,9 +1,8 @@
 function __fish_ninja
     set -l saved_args $argv
     set -l dir .
-    if argparse -i C/dir= -- (commandline -opc)
-        # Using eval to expand ~ and variables specified on the commandline.
-        eval command ninja -C$_flag_C \$saved_args
+    if argparse -i C/dir= -- (commandline -xpc)
+        command ninja -C$_flag_C $saved_args
     end
 end
 
@@ -13,6 +12,7 @@ end
 
 function __fish_print_ninja_targets
     __fish_ninja -t targets 2>/dev/null | string replace -r ':.*' ''
+    __fish_ninja -t targets all 2>/dev/null | string replace -r ':.*' '' | string match -e -r '\.(?:o|so|a)$'
 end
 complete -c ninja -f -a '(__fish_print_ninja_targets)' -d target
 complete -x -c ninja -s t -x -a "(__fish_print_ninja_tools)" -d subtool
@@ -26,4 +26,5 @@ complete -f -c ninja -s k -d "keep going until N jobs fail [default=1]"
 complete -f -c ninja -s h -d "show help"
 complete -f -c ninja -s d -d "enable debugging, specify debug mode"
 complete -f -c ninja -s w -d "adjust warnings, specify flags"
+complete -f -c ninja -s v -l verbose -d "show all command lines while building"
 complete -f -c ninja -l version -d "print ninja version"

@@ -25,9 +25,9 @@ If this is your first time using fish, see the :ref:`tutorial <tutorial>`.
 
 If you are already familiar with other shells like bash and want to see the scripting differences, see :ref:`Fish For Bash Users <fish_for_bash_users>`.
 
-For a comprehensive overview of fish's scripting language, see :ref:`The Fish Language <language>`.
+For an overview of fish's scripting language, see :ref:`The Fish Language <language>`. If it would be useful in a script file, it's here.
 
-For information on using fish interactively, see :ref:`Interactive use <interactive>`.
+For information on using fish interactively, see :ref:`Interactive use <interactive>`. If it's about key presses, syntax highlighting or anything else that needs an interactive terminal session, look here.
 
 If you need to install fish first, read on, the rest of this document will tell you how to get, install and configure fish.
 
@@ -100,10 +100,19 @@ A script written in :command:`bash` would need a first line like this:
 
 When the shell tells the kernel to execute the file, it will use the interpreter ``/bin/bash``.
 
-For a script written in another language, just replace ``/bin/bash`` with the interpreter for that language (for example: ``/usr/bin/python`` for a python script, or ``/usr/local/bin/fish`` for a fish script).
+For a script written in another language, just replace ``/bin/bash`` with the interpreter for that language. For example: ``/usr/bin/python`` for a python script, or ``/usr/local/bin/fish`` for a fish script, if that is where you have them installed.
 
-This line is only needed when scripts are executed without specifying the interpreter. For functions inside fish or when executing a script with ``fish /path/to/script``, a shebang is not required (but it doesn't hurt!).
+If you want to share your script with others, you might want to use :command:`env` to allow for the interpreter to be installed in other locations. For example::
 
+  #!/usr/bin/env fish
+  echo Hello from fish $version
+
+This will call ``env``, which then goes through :envvar:`PATH` to find a program called "fish". This makes it work, whether fish is installed in (for example) ``/usr/local/bin/fish``, ``/usr/bin/fish``, or ``~/.local/bin/fish``, as long as that directory is in :envvar:`PATH`.
+
+The shebang line is only used when scripts are executed without specifying the interpreter. For functions inside fish or when executing a script with ``fish /path/to/script``, a shebang is not required (but it doesn't hurt!).
+
+When executing files without an interpreter, fish, like other shells, tries your system shell, typically ``/bin/sh``. This is needed because some scripts are shipped without a shebang line.
+       
 Configuration
 =============
 
@@ -115,6 +124,8 @@ These files are read on the startup of every shell, whether interactive and/or i
 
 This is the short version; for a full explanation, like for sysadmins or integration for developers of other software, see :ref:`Configuration files <configuration>`.
 
+If you want to see what you changed over fish's defaults, see :doc:`fish_delta <cmds/fish_delta>`.
+
 Examples:
 ---------
 
@@ -124,7 +135,7 @@ To add ``~/linux/bin`` to PATH variable when using a login shell, add this to ``
         set -gx PATH $PATH ~/linux/bin
     end
 
-This is just an example; using :ref:`fish_add_path <cmd-fish_add_path>` e.g. ``fish_add_path ~/linux/bin`` which only adds the path if it isn't included yet is easier.
+This is just an example; using :doc:`fish_add_path <cmds/fish_add_path>` e.g. ``fish_add_path ~/linux/bin`` which only adds the path if it isn't included yet is easier.
 
 To run commands on exit, use an :ref:`event handler <event>` that is triggered by the exit of the shell::
 
@@ -160,6 +171,8 @@ Other help pages
    fish_for_bash_users
    tutorial
    completions
+   prompt
    design
    relnotes
+   contributing
    license

@@ -82,6 +82,11 @@ def is_wsl():
     return False
 
 
+def is_windows():
+    """Return whether we are running under the Windows"""
+    return sys.platform.startswith("win")
+
+
 def is_sailfish_os():
     """Return whether we are running on Sailfish OS"""
     if "linux" in platform.system().lower() and os.access(
@@ -108,7 +113,7 @@ def is_chromeos_garcon():
     # https://source.chromium.org/search?q=garcon-url-handler
     try:
         return "garcon-url-handler" in webbrowser.get().name
-    except AttributeError:
+    except:
         return False
 
 
@@ -583,7 +588,8 @@ def get_special_ansi_escapes():
                     val = curses.tparm(key)
                 if val:
                     val = val.decode("utf-8")
-                return val
+                # Use an empty string instead of None.
+                return "" if val is None else val
 
             # Just a few for now
             g_special_escapes_dict["exit_attribute_mode"] = get_tparm("sgr0")
@@ -1338,40 +1344,6 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             result.extend([self.read_one_sample_prompt(path) for path in paths])
         return result
 
-    def do_get_abbreviations(self):
-        # Example abbreviation line:
-        # abbr -a -U -- ls 'ls -a'
-        result = []
-        out, err = run_fish_cmd("abbr --show")
-        for line in out.rstrip().split("\n"):
-            if not line:
-                continue
-            _, abbr = line.split(" -- ", 1)
-            word, phrase = abbr.split(" ", 1)
-            result.append({"word": word, "phrase": phrase})
-        return result
-
-    def do_remove_abbreviation(self, abbreviation):
-        out, err = run_fish_cmd("abbr --erase %s" % abbreviation["word"])
-        if err:
-            return err
-        else:
-            return None
-
-    def do_save_abbreviation(self, abbreviation):
-        out, err = run_fish_cmd(
-            # Remove one layer of single-quotes because escape_fish_cmd adds them back.
-            "abbr --add %s %s"
-            % (
-                escape_fish_cmd(strip_one_layer(abbreviation["word"], "'")),
-                escape_fish_cmd(strip_one_layer(abbreviation["phrase"], "'")),
-            )
-        )
-        if err:
-            return err
-        else:
-            return None
-
     def secure_startswith(self, haystack, needle):
         if len(haystack) < len(needle):
             return False
@@ -1453,8 +1425,6 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             output = self.do_get_color_for_variable(name)
         elif p == "/bindings/":
             output = self.do_get_bindings()
-        elif p == "/abbreviations/":
-            output = self.do_get_abbreviations()
         else:
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
@@ -1544,6 +1514,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     "fish_pager_color_secondary_description",
                 )
             )
+            output = ""
             for item in postvars.get("colors"):
                 what = item.get("what")
                 color = item.get("color")
@@ -1577,18 +1548,6 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 output = ["OK"]
             else:
                 output = ["Unable to set prompt"]
-        elif p == "/save_abbreviation/":
-            errmsg = self.do_save_abbreviation(postvars)
-            if errmsg:
-                output = [errmsg]
-            else:
-                output = ["OK"]
-        elif p == "/remove_abbreviation/":
-            errmsg = self.do_remove_abbreviation(postvars)
-            if errmsg:
-                output = [errmsg]
-            else:
-                output = ["OK"]
         else:
             return self.send_error(404)
 
@@ -1630,9 +1589,13 @@ redirect_template_html = """
 # find fish
 fish_bin_dir = os.environ.get("__fish_bin_dir")
 fish_bin_path = None
+
+# only need the '.exe' extension on Windows
+fish_bin_name = "fish.exe" if is_windows() else "fish"
+
 if not fish_bin_dir:
     print("The $__fish_bin_dir environment variable is not set. " "Looking in $PATH...")
-    fish_bin_path = find_executable("fish")
+    fish_bin_path = find_executable(fish_bin_name)
     if not fish_bin_path:
         print("fish could not be found. Is fish installed correctly?")
         sys.exit(-1)
@@ -1640,7 +1603,7 @@ if not fish_bin_dir:
         print("fish found at '%s'" % fish_bin_path)
 
 else:
-    fish_bin_path = os.path.join(fish_bin_dir, "fish")
+    fish_bin_path = os.path.join(fish_bin_dir, fish_bin_name)
 
 if not os.access(fish_bin_path, os.X_OK):
     print(
@@ -1701,7 +1664,6 @@ if len(sys.argv) > 1:
         "variables",
         "history",
         "bindings",
-        "abbreviations",
     ]:
         if tab.startswith(sys.argv[1]):
             initial_tab = "#!/" + tab
@@ -1712,14 +1674,34 @@ url = "http://localhost:%d/%s/%s" % (PORT, authkey, initial_tab)
 # Create temporary file to hold redirect to real server. This prevents exposing
 # the URL containing the authentication key on the command line (see
 # CVE-2014-2914 or https://github.com/fish-shell/fish-shell/issues/1438).
-f = tempfile.NamedTemporaryFile(prefix="web_config", suffix=".html", mode="w")
+#
+
+# If on Windows, the file needs to be closed after writing, otherwise, the browser won't be able to open it."
+# unfortunately this was added in python 3.12, so we don't add it on other platforms
+# to support older python versions there.
+kwargs = {}
+if is_windows():
+    kwargs["delete_on_close"] = False
+f = tempfile.NamedTemporaryFile(
+    prefix="web_config",
+    suffix=".html",
+    mode="w",
+    delete=True,
+    **kwargs,
+)
 
 f.write(redirect_template_html % (url, url))
 f.flush()
 
+if is_windows():
+    f.close()
+
 # Open temporary file as URL
 # Use open on macOS >= 10.12.5 to work around #4035.
 fileurl = "file://" + f.name
+
+if is_windows():
+    fileurl = fileurl.replace("\\", "/")
 
 esc = get_special_ansi_escapes()
 print(
@@ -1765,13 +1747,55 @@ httpd.daemon_threads = True
 
 # Select on stdin and httpd
 stdin_no = sys.stdin.fileno()
-try:
+
+
+def create_socket(start_port, end_port):
+    """Attempt to create a socket from a range of ports."""
+    for port in range(start_port, end_port + 1):
+        try:
+            sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sck.bind(("localhost", port))
+            sck.listen()
+            return (sck, port)
+        except socket.error:
+            pass
+    print("Unable to find an open port between {} and {}.".format(start_port, end_port))
+    sys.exit(-1)
+
+
+def capture_enter(port):
+    """Read keyboard events and establish a socket connection when pressing the Enter."""
+    import msvcrt
+
     while True:
-        ready_read = select.select([sys.stdin.fileno(), httpd.fileno()], [], [])
-        if ready_read[0][0] < 1:
+        if msvcrt.kbhit():
+            key = msvcrt.getch().decode()
+            if key == "\r" or key == "\n":
+                break
+    sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sck.connect(("localhost", port))
+
+
+def get_windows_signal():
+    """Using socket as a replacement for stdin on Windows."""
+    (sig, sig_port) = create_socket(8000, 9000)
+    threading.Thread(target=capture_enter, args=(sig_port,)).start()
+    return sig
+
+
+try:
+    httpd_fileno = httpd.fileno()
+    sig = get_windows_signal() if is_windows() else sys.stdin
+    sig_fileno = sig.fileno()
+    while True:
+        ready_read = select.select([sig_fileno, httpd_fileno], [], [])
+        if ready_read[0][0] != httpd_fileno:
             print("Shutting down.")
-            # Consume the newline so it doesn't get printed by the caller
-            sys.stdin.readline()
+
+            # On windows the newline has already been consumed by the capture_enter function.
+            if not is_windows():
+                # Consume the newline so it doesn't get printed by the caller
+                sys.stdin.readline()
             break
         else:
             httpd.handle_request()
@@ -1779,5 +1803,8 @@ except KeyboardInterrupt:
     print("\nShutting down.")
 
 # Clean up temporary file
-f.close()
+# If on Windows, the file already closed
+if not is_windows():
+    f.close()
+
 thread.join()

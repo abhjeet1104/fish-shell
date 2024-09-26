@@ -81,11 +81,15 @@ expect_prompt()
 # We expect this grep to fail to find the pattern and thus the expect_prompt
 # block is inverted.
 sendline("grep '^" + hist_line + "' " + my_histfile)
+expect_prompt()
 grephistfile(hist_line, my_histfile)
 expect_prompt()
 
 # Verify that if we spawn fish with a HISTFILE env var it uses that file.
 # Start by shutting down the previous shell.
+sendline("jobs")
+expect_prompt("jobs: There are no jobs")
+sendline("exit")
 sendline("exit")
 sp.spawn.wait()
 

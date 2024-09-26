@@ -10,7 +10,7 @@ complete -c complete_test_alpha3 --no-files -w 'complete_test_alpha2 extra2'
 complete -C'complete_test_alpha1 arg1 '
 # CHECK: complete_test_alpha1 arg1
 complete --escape -C'complete_test_alpha1 arg1 '
-# CHECK: complete_test_alpha1\ arg1\
+# CHECK: 'complete_test_alpha1 arg1 '
 complete -C'complete_test_alpha2 arg2 '
 # CHECK: complete_test_alpha1 extra1 arg2
 complete -C'complete_test_alpha3 arg3 '
@@ -46,6 +46,10 @@ complete -c t -l fileoption -rF
 complete -C't --fileoption ' | string match test.fish
 # CHECK: test.fish
 
+# See that an empty command gets files
+complete -C'"" t' | string match test.fish
+# CHECK: test.fish
+
 # Make sure bare `complete` is reasonable,
 complete -p '/complete test/beta1' -d 'desc, desc' -sZ
 complete -c 'complete test beta2' -r -d 'desc \' desc2 [' -a 'foo bar'
@@ -58,7 +62,7 @@ complete
 # CHECK: complete --force-files t -l fileoption
 # CHECK: complete --no-files t -a '(t)'
 # CHECK: complete -p '/complete test/beta1' -s Z -d 'desc, desc'
-# CHECK: complete --require-parameter 'complete test beta2' -d desc\ \'\ desc2\ \[ -a 'foo bar'
+# CHECK: complete --require-parameter 'complete test beta2' -d "desc ' desc2 [" -a 'foo bar'
 # CHECK: complete --exclusive complete_test_beta2 -o test -n false
 # CHECK: complete {{.*}}
 # CHECK: complete {{.*}}
@@ -131,7 +135,7 @@ complete -C'foo -z'
 
 
 # Builtins (with subcommands; #2705)
-complete -c complete_test_subcommand -n 'test (commandline -op)[1] = complete_test_subcommand' -xa ok
+complete -c complete_test_subcommand -n 'test (commandline -xp)[1] = complete_test_subcommand' -xa ok
 complete -C'not complete_test_subcommand '
 # CHECK: ok
 complete -C'echo; and complete_test_subcommand '
@@ -399,6 +403,7 @@ complete -c fudge -f
 complete -c fudge -n '__fish_seen_subcommand_from eat' -F
 complete -C'fudge eat yummyin'
 # CHECK: yummyinmytummy
+complete -C"echo no commpletion inside comment # "
 cd -
 
 rm -r $dir
@@ -458,7 +463,7 @@ complete -C 'crookshanks '
 # CHECK: +pet
 
 # Custom completion works with variable overrides.
-complete cmd_with_fancy_completion -xa '(commandline -opc | count)'
+complete cmd_with_fancy_completion -xa '(commandline -xpc | count)'
 complete -C"a=1 b=2 cmd_with_fancy_completion "
 # CHECK: 1
 complete -C"a=1 b=2 cmd_with_fancy_completion 1 "
@@ -468,18 +473,17 @@ complete -c thing -x -F
 # CHECKERR: complete: invalid option combination, '--exclusive' and '--force-files'
 # Multiple conditions
 complete -f -c shot
-complete -fc shot -n 'test (count (commandline -opc) -eq 1' -n 'test (commandline -opc)[-1] = shot' -a 'through'
-# CHECKERR: complete: Condition 'test (count (commandline -opc) -eq 1' contained a syntax error
-# CHECKERR: complete: Unexpected end of string, expecting ')'
-# CHECKERR: test (count (commandline -opc) -eq 1
+complete -fc shot -n 'test (count (commandline -xpc) -eq 1' -n 'test (commandline -xpc)[-1] = shot' -a 'through'
+# CHECKERR: complete: -n 'test (count (commandline -xpc) -eq 1': Unexpected end of string, expecting ')'
+# CHECKERR: test (count (commandline -xpc) -eq 1
 # CHECKERR: ^
-complete -fc shot -n 'test (count (commandline -opc)) -eq 1' -n 'test (commandline -opc)[-1] = shot' -a 'through'
-complete -fc shot -n 'test (count (commandline -opc)) -eq 2' -n 'test (commandline -opc)[-1] = through' -a 'the'
-complete -fc shot -n 'test (count (commandline -opc)) -eq 3' -n 'test (commandline -opc)[-1] = the' -a 'heart'
-complete -fc shot -n 'test (count (commandline -opc)) -eq 4' -n 'test (commandline -opc)[-1] = heart' -a 'and'
-complete -fc shot -n 'test (count (commandline -opc)) -eq 5' -n 'test (commandline -opc)[-1] = and' -a "you\'re"
-complete -fc shot -n 'test (count (commandline -opc)) -eq 6' -n 'test (commandline -opc)[-1] = "you\'re"' -a 'to'
-complete -fc shot -n 'test (count (commandline -opc)) -eq 7' -n 'test (commandline -opc)[-1] = to' -a 'blame'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 1' -n 'test (commandline -xpc)[-1] = shot' -a 'through'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 2' -n 'test (commandline -xpc)[-1] = through' -a 'the'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 3' -n 'test (commandline -xpc)[-1] = the' -a 'heart'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 4' -n 'test (commandline -xpc)[-1] = heart' -a 'and'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 5' -n 'test (commandline -xpc)[-1] = and' -a "you\'re"
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 6' -n 'test (commandline -xpc)[-1] = "you\'re"' -a 'to'
+complete -fc shot -n 'test (count (commandline -xpc)) -eq 7' -n 'test (commandline -xpc)[-1] = to' -a 'blame'
 
 complete -C"shot "
 # CHECK: through
@@ -527,4 +531,93 @@ begin
     # CHECK: Empty completions
 end
 
+rm -$f $tmpdir/*
+
+# Leading dots are not completed for default file completion,
+# but may be for custom command (e.g. git add).
+function dotty
+end
+function notty
+end
+complete -c dotty --no-files -a '(echo .a*)'
+touch .abc .def
+complete -C'notty '
+echo "Should be nothing"
+# CHECK: Should be nothing
+complete -C'dotty '
+# CHECK: .abc
+
 rm -r $tmpdir
+
+complete -C'complete --command=mktemp' | string replace -rf '=mktemp\t.*' '=mktemp'
+# (one "--command=" is okay, we used to get "--command=--command="
+# CHECK: --command=mktemp
+
+## Test token expansion in commandline -x
+
+complete complete_make -f -a '(argparse C/directory= -- (commandline -xpc)[2..];
+                               echo Completing targets in directory $_flag_C)'
+var=path/to complete -C'complete_make -C "$var/build-directory" '
+# CHECK: Completing targets in directory path/to/build-directory
+var1=path complete -C'var2=to complete_make -C "$var1/$var2/other-build-directory" '
+# CHECK: Completing targets in directory path/to/other-build-directory
+
+complete complete_existing_argument -f -a '(commandline -xpc)[2..]'
+var=a_value complete -C'complete_existing_argument "1  2" $var \'quoted (foo bar)\' unquoted(baz qux) '
+# CHECK: 1  2
+# CHECK: a_value
+# CHECK: quoted (foo bar)
+# CHECK: unquoted(baz qux)
+
+complete complete_first_argument_and_count -f -a '(set -l args (commandline -xpc)[2..]
+                                        echo (count $args) arguments, first argument is $args[1])'
+list=arg(seq 10) begin
+    complete -C'complete_first_argument_and_count $list$list '
+    # CHECK: 100 arguments, first argument is arg1arg1
+    complete -C'complete_first_argument_and_count $list$list$list '
+    # CHECK: 1 arguments, first argument is $list$list$list
+end
+
+## Test commandline --tokens-raw
+complete complete_raw_tokens -f -ka '(commandline --tokens-raw)'
+complete -C'complete_raw_tokens "foo" bar\\ baz (qux) '
+# CHECK: complete_raw_tokens
+# CHECK: "foo"
+# CHECK: bar\ baz
+# CHECK: (qux)
+
+## Test deprecated commandline -o
+complete complete_unescaped_tokens -f -ka '(commandline -o)'
+complete -C'complete_unescaped_tokens "foo" bar\\ baz (qux) '
+# CHECK: complete_unescaped_tokens
+# CHECK: foo
+# CHECK: bar baz
+# CHECK: (qux)
+
+## Fuzzy completion of options
+complete complete_long_option -f -l some-long-option
+complete -C'complete_long_option --slo'
+# CHECK: --some-long-option
+complete complete_long_option -f -o an-old-option
+complete -C'complete_long_option -ao'
+# CHECK: -an-old-option
+# But only if the user typed a dash
+complete -C'complete_long_option lo'
+
+# Check that descriptions are correctly generated for commands.
+# Override __fish_describe_command to prevent missing man pages or broken __fish_apropos on macOS
+# from failing this test. (TODO: Test the latter separately.)
+function __fish_describe_command
+    echo -e "whereis\twhere is it"
+    echo -e "whoami\twho am i"
+    echo -e "which\which is it"
+end
+test (count (complete -C"wh" | string match -rv "\tcommand|^while")) -gt 0 && echo "found" || echo "fail"
+# CHECK: found
+
+set -l commands check search show
+complete -c testcommand -n "not __fish_seen_subcommand_from $commands" -a 'check\t"Check the frobnicator" search\t"Search for frobs" show\t"Show all frobs"'
+complete -C'testcommand '
+# CHECK: check{{\t}}Check the frobnicator
+# CHECK: search{{\t}}Search for frobs
+# CHECK: show{{\t}}Show all frobs

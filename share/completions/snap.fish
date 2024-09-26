@@ -1,7 +1,7 @@
 # Completions for `snap` command
 
 function __fish_snap_no_subcommand -d 'Test if snap has yet to be given the subcommand'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i abort ack alias aliases buy changes connect disable disconnect download \
                 enable find get help info install interfaces known list login logout prefer refresh remove \
                 revert run set tasks try unalias version watch
@@ -12,7 +12,7 @@ function __fish_snap_no_subcommand -d 'Test if snap has yet to be given the subc
 end
 
 function __fish_snap_using_subcommand -d 'Test if given subcommand is used'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i $argv[1]
             return 0
         end
@@ -20,17 +20,8 @@ function __fish_snap_using_subcommand -d 'Test if given subcommand is used'
     return 1
 end
 
-function __fish_snap_use_package -d 'Test if snap command should have packages as potential completion'
-    for i in (commandline -opc)
-        if contains -- $i alias buy disable download enable info install refresh remove revert run try
-            return 0
-        end
-    end
-    return 1
-end
-
 function __fish_snap_use_file -d 'Test if snap command should have files as potential completion'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i ack try
             return 0
         end
@@ -80,7 +71,7 @@ function __fish_snap_aliases -d 'List aliases'
 end
 
 function __fish_snap_no_assertion -d 'Check that no assertion type is used yet'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i account account-key model serial snap-declaration snap-build snap-revision \
                 system-user validation
             return 1
@@ -193,7 +184,7 @@ __fish_snap_option install -l revision -d "Install the given revision of snap, t
 __fish_snap_option install -l devmode -d "Put snap in development mode and disable security confinement"
 __fish_snap_option install -l jailmode -d "Put snap in enforced confinement mode"
 __fish_snap_option install -l classic -d "Put snap in classic mode and disable security confinement"
-__fish_snap_option install -l dangerous -d "Install the given snap file even if there are no pre-acknowledged signatures for it, meaning it was not  verified and could be dangerous"
+__fish_snap_option install -l dangerous -d "Install the given snap even without pre-acknowledged signatures (DANGEROUS)"
 
 # Interfaces
 __fish_snap_subcommand interfaces -d "Lists interfaces in the system"

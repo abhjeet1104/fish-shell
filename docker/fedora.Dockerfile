@@ -1,15 +1,19 @@
 FROM fedora:latest
+LABEL org.opencontainers.image.source=https://github.com/fish-shell/fish-shell
 
 RUN dnf install --assumeyes \
-    cmake \
-    gcc-c++ \
-    git-core \
-    ncurses-devel \
-    ninja-build \
-    python3 \
-    python3-pip \
-    openssl \
-    sudo
+      cmake \
+      diffutils \
+      gcc-c++ \
+      git-core \
+      ninja-build \
+      pcre2-devel \
+      python3 \
+      python3-pip \
+      openssl \
+      procps \
+      sudo && \
+    dnf clean all
 
 RUN pip3 install pexpect
 
