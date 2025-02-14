@@ -21,7 +21,7 @@ function __fish_iw_ssid
 end
 
 function __fish_complete_iw
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
 
     if string match --quiet -- '-*' $cmd[2]
         set -e cmd[2] # Allow other completions to complete as normal
@@ -149,6 +149,19 @@ function __fish_complete_iw
                             channel "" \
                             freq "" \
                             power_save "Power save state"
+                    else
+                        switch "$cmd[5]"
+                            case type
+                                if not set -q cmd[6]
+                                    printf '%s\n' managed ibss monitor mesh wds
+                                end
+                            case channel
+                                if not set -q cmd[6]
+                                    # cmd[6] is just the simple channel number
+                                else if not set -q cmd[7]
+                                    printf '%s\n' NOHT HT20 HT40+ HT40- 5MHz 10MHz 80MHz 160MHz
+                                end
+                        end
                     end
                 case get
                     if not set -q cmd[5]

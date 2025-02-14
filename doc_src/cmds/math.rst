@@ -8,7 +8,7 @@ Synopsis
 
 .. synopsis::
 
-    math [(-s | --scale) N] [(-b | --base) BASE] EXPRESSION ...
+    math [(-s | --scale) N] [(-b | --base) BASE] [(-m | --scale-mode) MODE] EXPRESSION ...
 
 
 Description
@@ -17,8 +17,8 @@ Description
 ``math`` performs mathematical calculations.
 It supports simple operations such as addition, subtraction, and so on, as well as functions like ``abs()``, ``sqrt()`` and ``ln()``.
 
-By default, the output is a floating-point number with trailing zeroes trimmed.
-To get a fixed representation, the ``--scale`` option can be used, including ``--scale=0`` for integer output.
+By default, the output shows up to 6 decimal places.
+To change the number of decimal places, use the ``--scale`` option, including ``--scale=0`` for integer output.
 
 Keep in mind that parameter expansion happens before expressions are evaluated.
 This can be very useful in order to perform calculations involving shell variables or the output of command substitutions, but it also means that parenthesis (``()``) and the asterisk (``*``) glob character have to be escaped or quoted.
@@ -36,8 +36,8 @@ The following options are available:
 **-s** *N* or **--scale** *N*
     Sets the scale of the result.
     ``N`` must be an integer or the word "max" for the maximum scale.
-    A scale of zero causes results to be truncated, not rounded. Any non-integer component is thrown away.
-    So ``3/2`` returns ``1`` rather than ``2`` which ``1.5`` would normally round to.
+    A scale of zero causes results to be truncated by default. Any non-integer component is thrown away.
+    So ``3/2`` returns ``1`` by default, rather than ``2`` which ``1.5`` would normally round to.
     This is for compatibility with ``bc`` which was the basis for this command prior to fish 3.0.0.
     Scale values greater than zero causes the result to be rounded using the usual rules to the specified number of decimal places.
 
@@ -47,6 +47,11 @@ The following options are available:
     This might change in the future.
     Hex numbers will be printed with a ``0x`` prefix.
     Octal numbers will have a prefix of ``0`` but aren't understood by ``math`` as input.
+
+**-m** *MODE* or **--scale-mode** *MODE*
+    Sets scale behavior.
+    The ``MODE`` can be ``truncate``, ``round``, ``floor``, ``ceiling``.
+    The default value of scale mode is ``round`` with non zero scale and ``truncate`` with zero scale.
 
 **-h** or **--help**
     Displays help about using this command.
@@ -189,7 +194,7 @@ Examples
 
 ``math -s0 10.0 / 6.0`` outputs ``1``.
 
-``math -s3 10 / 6`` outputs ``1.666``.
+``math -s3 10 / 6`` outputs ``1.667``.
 
 ``math "sin(pi)"`` outputs ``0``.
 

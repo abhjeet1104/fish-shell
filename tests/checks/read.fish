@@ -1,4 +1,4 @@
-# RUN: %fish -C "set fish %fish" %s
+# RUN: fish=%fish %fish %s
 # Set term again explicitly to ensure behavior.
 set -gx TERM xterm
 # Read with no vars is not an error
@@ -155,7 +155,7 @@ echo $foo
 echo newline | read -lz foo
 echo $foo
 #CHECK: newline
-#CHECK: 
+#CHECK:
 echo -n 'test ing' | read -lz foo bar
 print_vars foo bar
 #CHECK: 1 'test' 1 'ing'
@@ -303,7 +303,7 @@ echo $foo
 echo $bar
 #CHECK: b
 echo $baz
-#CHECK: 
+#CHECK:
 
 # Multi-char delimiters with -d
 echo a...b...c | read -l -d "..." a b c
@@ -380,3 +380,51 @@ begin
 end | read -l --line foo bar
 echo $foo $bar
 # CHECK: 1 2
+
+echo foo | read status
+# CHECKERR: read: status: cannot overwrite read-only variable
+# CHECKERR: {{.*}}read.fish (line {{\d+}}):
+# CHECKERR: echo foo | read status
+# CHECKERR: ^
+# CHECKERR: (Type 'help read' for related documentation)
+echo read $status
+# CHECK: read 2
+
+echo ' foo' | read -n 1 -la var
+set -S var
+#CHECK: $var: set in local scope, unexported, with 0 elements
+
+echo foo | read -n -1
+# CHECKERR: read: -1: invalid integer
+# CHECKERR: {{.*}}read.fish (line {{\d+}}):
+# CHECKERR: echo foo | read -n -1
+# CHECKERR: ^
+# CHECKERR: (Type 'help read' for related documentation)
+
+echo '1 ( (' | read -lat var
+set -S var
+# CHECK: $var: set in local scope, unexported, with 2 elements
+# CHECK: $var[1]: |1|
+# CHECK: $var[2]: |( (|
+
+echo '1 ) )' | read -lat var
+set -S var
+# CHECK: $var: set in local scope, unexported, with 2 elements
+# CHECK: $var[1]: |1|
+# CHECK: $var[2]: |)|
+
+echo '1 { {' | read -lat var
+set -S var
+# CHECK: $var: set in local scope, unexported, with 2 elements
+# CHECK: $var[1]: |1|
+# CHECK: $var[2]: |{ {|
+
+echo '1 } }' | read -lat var
+set -S var
+# CHECK: $var: set in local scope, unexported, with 2 elements
+# CHECK: $var[1]: |1|
+# CHECK: $var[2]: |}|
+
+echo '1  {} "{}"' | read -lat var
+echo $var
+# CHECK: 1 {} {}

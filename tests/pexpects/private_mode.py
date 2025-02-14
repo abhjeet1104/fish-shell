@@ -16,6 +16,7 @@ recorded_history = []
 private_mode_active = False
 fish_path = os.environ.get("fish")
 
+
 # Send a line and record it in our history array if private mode is not active.
 def sendline_record(s):
     sendline(s)
@@ -66,5 +67,5 @@ while now - start < 1:
     sleep(now - start)
     now = time.time()
 
-sendline(r" builtin history save ; %s -c 'string join \n -- $history'" % fish_path)
+sendline(r" builtin history save ; $fish -c 'string join \n -- $history'")
 expect_prompt("\r\n".join(reversed(recorded_history)))

@@ -50,7 +50,7 @@ function trap -d 'Perform an action when the shell receives a signal'
                 if test -n "$sig"
                     set -l sw --on-signal $sig
                     if string match -qi exit -- $sig
-                            set sw --on-event fish_exit
+                        set sw --on-event fish_exit
                     end
                     echo "function __trap_handler_$sig $sw; $cmd; end" | source
                 else
@@ -63,12 +63,13 @@ function trap -d 'Perform an action when the shell receives a signal'
             if set -q argv[1]
                 set names $argv
             else
-                set names (functions -na | string match "__trap_handler_*" | string replace '__trap_handler_' '')
+                set names (functions -a | string split ',' | string match "__trap_handler_*" | string replace '__trap_handler_' '')
             end
 
             for sig in (string upper -- $names | string replace -r '^SIG' '')
                 if test -n "$sig"
-                    functions __trap_handler_$i
+                    functions __trap_handler_$sig
+                    echo ""
                 else
                     return 1
                 end

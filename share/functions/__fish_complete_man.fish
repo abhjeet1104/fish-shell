@@ -1,10 +1,9 @@
-
 function __fish_complete_man
     # Try to guess what section to search in. If we don't know, we
     # use [^)]*, which should match any section.
     set -l section ""
     set -l token (commandline -ct)
-    set -l prev (commandline -poc)
+    set -l prev (commandline -pxc)
     set -e prev[1]
     while set -q prev[1]
         switch $prev[1]
@@ -32,7 +31,7 @@ function __fish_complete_man
 
     if test -n "$token"
         # Do the actual search
-        __fish_apropos $token 2>/dev/null | awk '
+        __fish_apropos ^$token 2>/dev/null | awk '
                 BEGIN { FS="[\t ]- "; OFS="\t"; }
                 # BSD/Darwin
                 /^[^( \t]+(, [^( \t]+)*\('$section'\)/ {
@@ -55,7 +54,7 @@ function __fish_complete_man
                   split($1, t, " ");
                   sect = substr(t[3], 2, length(t[3]) - 2);
                   print t[1], sect ": " $2;
-                }
+                }   
                 # Solaris 11
                 # Does not display descriptions
                 # Solaris apropos outputs embedded backspace in descriptions

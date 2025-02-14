@@ -14,7 +14,7 @@ Command substitutions
 
 Fish spells command substitutions as ``$(command)`` or ``(command)``, but not ```command```.
 
-In addition, it only splits them on newlines instead of $IFS. If you want to split on something else, use :ref:`string split <cmd-string-split>`, :ref:`string split0 <cmd-string-split>` or :ref:`string collect <cmd-string-collect>`. If those are used as the last command in a command substitution the splits they create are carried over. So::
+In addition, it only splits them on newlines instead of $IFS. If you want to split on something else, use :doc:`string split <cmds/string-split>`, :doc:`string split0 <cmds/string-split>` or :doc:`string collect <cmds/string-collect>`. If those are used as the last command in a command substitution the splits they create are carried over. So::
 
   for i in (find . -print0 | string split0)
 
@@ -23,9 +23,9 @@ will correctly handle all possible filenames.
 Variables
 ---------
 
-Fish sets and erases variables with :ref:`set <cmd-set>` instead of ``VAR=VAL`` and a variety of separate builtins like ``declare`` and ``unset`` and ``export``. ``set`` takes options to determine the scope and exportedness of a variable::
+Fish sets and erases variables with :doc:`set <cmds/set>` instead of ``VAR=VAL`` and a variety of separate builtins like ``declare`` and ``unset`` and ``export``. ``set`` takes options to determine the scope and exportedness of a variable::
 
-  # Define $PAGER global and exported,
+  # Define $PAGER *g*lobal and e*x*ported,
   # so this is like ``export PAGER=less``
   set -gx PAGER less
 
@@ -60,7 +60,8 @@ And here is fish::
 
   > set foo "bar baz"
   > printf '"%s"\n' $foo
-  # foo was set as one element, so it will be passed as one element, so this is one line
+  # foo was set as one element,
+  # so it will be passed as one element, so this is one line
   "bar baz"
 
 All variables are "arrays" (we use the term "lists"), and expanding a variable expands to all its elements, with each element as its own argument (like bash's ``"${var[@]}"``::
@@ -114,6 +115,10 @@ will not match any files.
 
 There are no options to control globbing so it always behaves like that.
 
+The ``**`` glob will match in subdirectories as well. In other shells this often needs to be turned on with an option, like ``setopt globstar`` in bash.
+
+Unlike bash, fish will also follow symlinks, and will sort the results in a natural sort, with included numbers compared as numbers. That means it will sort e.g. music tracks correctly even if they have numbers like ``1`` instead of ``01``.
+
 See :ref:`Wildcards <expand-wildcard>` for more.
 
 Quoting
@@ -132,7 +137,7 @@ See :ref:`Quotes <quotes>` for more.
 String manipulation
 -------------------
 
-Fish does not have ``${foo%bar}``, ``${foo#bar}`` and ``${foo/bar/baz}``. Instead string manipulation is done by the :ref:`string <cmd-string>` builtin.
+Fish does not have ``${foo%bar}``, ``${foo#bar}`` and ``${foo/bar/baz}``. Instead string manipulation is done by the :doc:`string <cmds/string>` builtin.
 
 For example, to replace "bar" with "baz"::
 
@@ -191,7 +196,7 @@ just use::
 
   command | source
 
-as fish's :ref:`source <cmd-source>` can read from stdin.
+as fish's :doc:`source <cmds/source>` can read from stdin.
 
 Heredocs
 --------
@@ -275,7 +280,7 @@ Fish has a POSIX-compatible ``test`` or ``[`` builtin. There is no ``[[`` and ``
 Arithmetic Expansion
 --------------------
 
-Fish does not have ``$((i+1))`` arithmetic expansion, computation is handled by :ref:`math <cmd-math>`::
+Fish does not have ``$((i+1))`` arithmetic expansion, computation is handled by :doc:`math <cmds/math>`::
 
   math $i + 1
 
@@ -298,7 +303,7 @@ Both ``*`` and ``x`` are valid ways to spell multiplication, but ``*`` needs to 
 Prompts
 -------
 
-Fish does not use the ``$PS1``, ``$PS2`` and so on variables. Instead the prompt is the output of the :ref:`fish_prompt <cmd-fish_prompt>` function, plus the :ref:`fish_mode_prompt <cmd-fish_mode_prompt>` function if vi-mode is enabled and the :ref:`fish_right_prompt <cmd-fish_right_prompt>` function for the right prompt.
+Fish does not use the ``$PS1``, ``$PS2`` and so on variables. Instead the prompt is the output of the :doc:`fish_prompt <cmds/fish_prompt>` function, plus the :doc:`fish_mode_prompt <cmds/fish_mode_prompt>` function if :ref:`vi mode <vi-mode>` is enabled. The output of the :doc:`fish_right_prompt <cmds/fish_right_prompt>` function is used for the right-sided prompt.
 
 As an example, here's a relatively simple bash prompt:
 
@@ -320,9 +325,9 @@ and a rough fish equivalent::
 
 This shows a few differences:
 
-- Fish provides :ref:`set_color <cmd-set_color>` to color text. It can use the 16 named colors and also RGB sequences (so you could also use ``set_color 5555FF``)
-- Instead of introducing specific escapes like ``\h`` for the hostname, the prompt is simply a function. To achieve the effect of ``\h``, fish provides helper functions like :ref:`prompt_hostname <cmd-prompt_hostname>`, which prints a shortened version of the hostname.
-- Fish offers other helper functions for adding things to the prompt, like :ref:`fish_vcs_prompt <cmd-fish_vcs_prompt>` for adding a display for common version control systems (git, mercurial, svn), and :ref:`prompt_pwd <cmd-prompt_pwd>` for showing a shortened ``$PWD`` (the user's home directory becomes ``~`` and any path component is shortened).
+- Fish provides :doc:`set_color <cmds/set_color>` to color text. It can use the 16 named colors and also RGB sequences (so you could also use ``set_color 5555FF``)
+- Instead of introducing specific escapes like ``\h`` for the hostname, the prompt is simply a function. To achieve the effect of ``\h``, fish provides helper functions like :doc:`prompt_hostname <cmds/prompt_hostname>`, which prints a shortened version of the hostname.
+- Fish offers other helper functions for adding things to the prompt, like :doc:`fish_vcs_prompt <cmds/fish_vcs_prompt>` for adding a display for common version control systems (git, mercurial, svn), and :doc:`prompt_pwd <cmds/prompt_pwd>` for showing a shortened ``$PWD`` (the user's home directory becomes ``~`` and any path component is shortened).
 
 The default prompt is reasonably full-featured and its code can be read via ``type fish_prompt``.
 
@@ -412,6 +417,8 @@ This includes things like:
         baz &
     done
 
+Fish does not currently have subshells. You will have to find a different solution. The isolation can usually be achieved by just scoping variables (with ``set -l``), but if you really do need to run your code in a new shell environment you can use ``fish -c 'your code here'`` to do so explicitly.
+
 ``()`` subshells are often confused with ``{}`` grouping, which does *not* use a subshell. When you just need to group, you can use ``begin; end`` in fish::
 
     (foo; bar) | baz
@@ -432,18 +439,16 @@ The pipe will simply be run in the same process, so ``while read`` loops can set
 
 Subshells are also frequently confused with :ref:`command substitutions <bash-command-substitutions>`, which bash writes as ```command``` or ``$(command)`` and fish writes as ``$(command)`` or ``(command)``. Bash also *uses* subshells to implement them.
 
-The isolation can usually be achieved by just scoping variables (with ``set -l``), but if you really do need to run your code in a new shell environment you can always use ``fish -c 'your code here'`` to do so explicitly.
-
 Builtins and other commands
 ---------------------------
 
 By now it has become apparent that fish puts much more of a focus on its builtins and external commands rather than its syntax. So here are some helpful builtins and their rough equivalent in bash:
 
-- :ref:`string <cmd-string>` - this replaces most of the string transformation (``${i%foo}`` et al) and can also be used instead of ``grep`` and ``sed`` and such.
-- :ref:`math <cmd-math>` - this replaces ``$((i + 1))`` arithmetic and can also do floats and some simple functions (sine and friends).
-- :ref:`argparse <cmd-argparse>` - this can handle a script's option parsing, for which bash would probably use ``getopt`` (zsh provides ``zparseopts``).
-- :ref:`count <cmd-count>` can be used to count things and therefore replaces ``$#`` and can be used instead of ``wc``.
-- :ref:`status <cmd-status>` provides information about the shell status, e.g. if it's interactive or what the current linenumber is. This replaces ``$-`` and ``$BASH_LINENO`` and other variables.
+- :doc:`string <cmds/string>` - this replaces most of the string transformation (``${i%foo}`` et al) and can also be used instead of ``grep`` and ``sed`` and such.
+- :doc:`math <cmds/math>` - this replaces ``$((i + 1))`` arithmetic and can also do floats and some simple functions (sine and friends).
+- :doc:`argparse <cmds/argparse>` - this can handle a script's option parsing, for which bash would probably use ``getopt`` (zsh provides ``zparseopts``).
+- :doc:`count <cmds/count>` can be used to count things and therefore replaces ``$#`` and can be used instead of ``wc``.
+- :doc:`status <cmds/status>` provides information about the shell status, e.g. if it's interactive or what the current linenumber is. This replaces ``$-`` and ``$BASH_LINENO`` and other variables.
 
 - ``seq(1)`` can be used as a replacement for ``{1..10}`` range expansion. If your OS doesn't ship a ``seq`` fish includes a replacement function.
 
@@ -452,5 +457,5 @@ Other facilities
 
 Bash has ``set -x`` or ``set -o xtrace`` to print all commands that are being executed. In fish, this would be enabled by setting :envvar:`fish_trace`.
 
-Or, if your intention is to *profile* how long each line of a script takes, you can use ``fish --profile`` - see the :ref:`page for the fish command <cmd-fish>`.
+Or, if your intention is to *profile* how long each line of a script takes, you can use ``fish --profile`` - see the :doc:`page for the fish command <cmds/fish>`.
 

@@ -1,7 +1,7 @@
 # Fish completions for systemd's "busctl" dbus tool
 # TODO:
 # One issue is that sometimes these will come to a dead-end e.g. when a particular interface has no properties
-# Another is that some busnames aren't accesible by the current user
+# Another is that some busnames aren't accessible by the current user
 # but this can't be predicted via the user that owns that name, e.g. `org.freedesktop.login1`
 # is usually owned by a root-owned process, yet accessible (at least in part) by normal users
 
@@ -23,7 +23,7 @@ function _fish_busctl
         m-match= S-size= l-list q-quiet v-verbose e-expect-reply= Ä-auto-start= \
         1-allow-interactive-authorization= t-timeout= 2-augment-creds= U-user 3-system \
         H/host= M/machine= n-no-pager N-no-legend h/help V-version
-    set -l cmdline (commandline -opc) (commandline -ct)
+    set -l cmdline (commandline -xpc) (commandline -ct)
     set -e cmdline[1]
     argparse $args -- $cmdline 2>/dev/null
     or return

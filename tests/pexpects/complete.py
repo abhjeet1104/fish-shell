@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from pexpect_helper import SpawnedProc
+from pexpect_helper import SpawnedProc, TO_END
 
 sp = SpawnedProc()
 send, sendline, sleep, expect_prompt, expect_re, expect_str = (
@@ -36,9 +36,9 @@ sendline(
     """
     # Make sure this function does nothing
     function my_is; :; end
-    complete -c my_is -n 'test (count (commandline -opc)) = 1' -xa arg
+    complete -c my_is -n 'test (count (commandline -xpc)) = 1' -xa arg
     complete -c my_is -n '__fish_seen_subcommand_from not' -xa '(
-	set -l cmd (commandline -opc) (commandline -ct)
+	set -l cmd (commandline -xpc) (commandline -ct)
 	set cmd (string join " " my_is $cmd[3..-1])" "
 	commandline --replace --current-process $cmd
 	complete -C"$cmd"
@@ -53,7 +53,7 @@ sendline("")
 
 # Check cancelling completion acceptance
 # (bind cancel to something else so we don't have to mess with the escape delay)
-sendline("bind \cg cancel")
+sendline("bind ctrl-g cancel")
 sendline("complete -c echo -x -a 'foooo bar'")
 send("echo fo\t")
 send("\x07")
@@ -70,11 +70,11 @@ send("\x07")
 sendline("bar")
 expect_re("foooo bar")
 
-sendline("bind \cg 'commandline -f cancel; commandline \"\"'")
+sendline("bind ctrl-g 'commandline -f cancel; commandline \"\"'")
 send("echo fo\t")
 expect_re("foooo")
 send("\x07")
 sendline("echo bar")
-expect_re("\nbar")
+expect_re(TO_END + "bar")
 sendline("echo fo\t")
 expect_re("foooo")

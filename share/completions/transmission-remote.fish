@@ -1,4 +1,3 @@
-
 complete -c transmission-remote -s a -l add -d 'Add torrents to transmission'
 complete -c transmission-remote -s b -l debug -d 'Enable debugging mode'
 complete -c transmission-remote -o as -l alt-speed -d 'Use the alternate Limits'
@@ -37,7 +36,7 @@ complete -c transmission-remote -s n -l auth -d 'Set the username:password for a
 complete -c transmission-remote -o ne -l authenv -d 'Set the authentication information from $TR_AUTH'
 complete -c transmission-remote -s N -l netrc -d 'Set authentication information from a netrc file'
 complete -c transmission-remote -s o -l dht -d 'Enable distributed hash table (DHT)'
-complete -c transmission-remote -s O -l no-dht -d 'Disable distribued hash table (DHT)'
+complete -c transmission-remote -s O -l no-dht -d 'Disable distributed hash table (DHT)'
 complete -c transmission-remote -s p -l port -d 'Set the port to use when listening'
 complete -c transmission-remote -o Bh -l bandwidth-high -d 'Give this torrent high bandwidth'
 complete -c transmission-remote -o Bn -l bandwidth-normal -d 'Give this torrent normal bandwidth'

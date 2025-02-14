@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 from pexpect_helper import SpawnedProc
-import subprocess
 import sys
 import signal
-import time
 import os
 
 sp = SpawnedProc()
@@ -14,6 +12,7 @@ send, sendline, sleep, expect_prompt, expect_re = (
     sp.expect_prompt,
     sp.expect_re,
 )
+
 
 # Helper to print an error and exit.
 def error_and_exit(text):
@@ -27,10 +26,16 @@ fish_pid = sp.spawn.pid
 # Launch fish_test_helper.
 expect_prompt()
 exe_path = os.environ.get("fish_test_helper")
+if not exe_path:
+    sys.exit(127)
+if not os.path.exists(exe_path):
+    print(f"{exe_path} does not exist")
+    sys.exit(1)
+
 sp.sendline(exe_path + " nohup_wait")
 
 # We expect it to transfer tty ownership to fish_test_helper.
-sleep(0.1)
+sleep(1)
 tty_owner = os.tcgetpgrp(sp.spawn.child_fd)
 if fish_pid == tty_owner:
     os.kill(fish_pid, signal.SIGKILL)
@@ -44,7 +49,7 @@ if fish_pid == tty_owner:
 # It must not hang. But it might hang when trying to restore the tty.
 os.kill(fish_pid, signal.SIGTERM)
 
-# Loop a bit until the process exits (correct) or stops (incorrrect).
+# Loop a bit until the process exits (correct) or stops (incorrect).
 # When it exits it should be due to the SIGTERM that we sent it.
 for i in range(50):
     pid, status = os.waitpid(fish_pid, os.WUNTRACED | os.WNOHANG)
@@ -76,7 +81,9 @@ for i in range(50):
         sys.exit(0)
 else:
     # Our loop completed without the process being returned.
+    os.kill(fish_pid, signal.SIGKILL)
     error_and_exit("fish with pid %d hung after SIGTERM" % fish_pid)
 
 # Should never get here.
+os.kill(fish_pid, signal.SIGKILL)
 error_and_exit("unknown, should be unreachable")

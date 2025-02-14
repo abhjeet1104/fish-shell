@@ -53,6 +53,9 @@ body {
     background-color: #DDE;
 }
 
+#tab_parent{
+    border: red 1px;
+}
 #tab_parent :first-child {
     border-top-left-radius: 8px;
     border-left: none;
@@ -91,25 +94,25 @@ body {
     height: 30px;
 }
 
-.master_detail_table {
-    display: table;
-    margin-top: 10px;
+.function_tab {
     margin-left: 12px;
     margin-right: 12px;
+    display: flex;
+    flex-direction: row;
+    height: 90vh;
+    overflow: hidden;
 }
 
-.master {
-    display: table-cell;
+.function-list {
     text-align: right;
-    min-width: 200px;
+    min-width: 250px;
     font-size: 16pt;
-    padding-bottom: 20px;
-    padding-top: 35px;
     vertical-align: top;
+    overflow-y: auto;
+    height: 100%;
 }
 
-.detail {
-    display: table-cell;
+.function-body {
     border: 1px solid #555;
     background-color: #ffffff;
     padding-top: 30px;
@@ -118,6 +121,8 @@ body {
     padding-right: 30px;
     border-radius: 5;
     width: 100%;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .detail_function pre {
@@ -270,7 +275,6 @@ body {
     padding-bottom: 5px;
     vertical-align: top;
     overflow: hidden;
-    border-bottom: #444 dotted 1px;
     word-wrap: break-word;
 }
 
@@ -284,26 +288,17 @@ body {
     padding-bottom: 5px;
     vertical-align: top;
     overflow: hidden;
-    border-bottom: #444 dotted 1px;
     word-wrap: break-word;
 }
 
 .history_delete {
     width: 20px;
-    border-bottom: #444 dotted 1px;
 }
 
-.abbreviation_actions {
-    width: 8em;
-    text-align: right;
-    border-bottom: #444 dotted 1px;
-}
-
-.abbreviation_input {
-    height: 1.5em;
-    font: inherit;
-    padding: 3px;
-    margin: 0;
+.data_table_cell,
+.history_text,
+.history_delete {
+    border-bottom: #AAA dotted 1px;
 }
 
 /* The CSS we apply when a table row is filtered */
@@ -408,7 +403,7 @@ body {
     top: 0px;
 }
 
-.color_picker_background_cells div {
+.color_picker_background_cells label {
     width: 24px;
     height: 24px;
     border-style: solid;
@@ -473,17 +468,24 @@ body {
     margin-bottom: 5pt;
 }
 
-img.delete_icon {
+button.delete_button {
     width: 20px;
     height: 20px;
     cursor: pointer;
     text-decoration: none;
     border: none;
+    background-color: transparent;
+    font-size: 16pt;
+    color: #777;
+}
+
+button.delete_button:hover {
+    color: #333;
 }
 
 #table_filter_container {
     /* top right bottom left*/
-    padding: 0 10 10 30;
+    padding: 0 10px 10px 30px;
     text-align: right;
     position: relative;
     bottom: 10px;
@@ -491,10 +493,9 @@ img.delete_icon {
 
 .filter_text_box {
     width: 250px;
-    padding: 5 10 5 10;
-    border-radius: 15px;
+    padding: 5px 10px 5px 10px;
+    border-radius: 10px;
     font-size: 12pt;
-    font-weight: bold;
 }
 
 .prompt_demo,
@@ -590,34 +591,24 @@ img.delete_icon {
 }
 
 .paginator {
-    border-spacing: 0;
-    border-collapse: collapse;
-    display: inline;
+    display: inline-block;
     vertical-align: bottom;
     margin-right: 15px;
+    position: relative;
+    bottom: 2px;
 }
 
 .paginator td {
-    border: solid 1px #777;
-    padding: 8px;
+    padding: 0 8px;
 }
 
-.paginator .prev,
-.paginator .next {
+.paginator .desc {
+    min-width: 55px;
+}
+
+.paginator .prev button,
+.paginator .next button {
     font-size: 11pt;
-}
-
-.paginator a {
-    text-decoration: none;
-    text-align: center;
-    color: #0080aa;
-    font-size: larger;
-}
-
-.paginator .disabled a {
-    color: #bbb;
-    background-color: transparent;
-    cursor: default;
 }
 
 @media screen and (max-width: 1000px) {
@@ -645,7 +636,7 @@ img.delete_icon {
         color: #DDD;
     }
 
-    div#ancestor {
+    #ancestor {
         box-shadow: 0 0 5px 1px #000;
     }
     .tab {
@@ -676,4 +667,8 @@ img.delete_icon {
         background-color: #222;
         color: #AAA;
     }
+}
+
+.print_only {
+    display: none;
 }

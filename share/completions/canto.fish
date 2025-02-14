@@ -1,6 +1,5 @@
-
 function __fish_canto_using_command
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
     if test (count $cmd) -gt 1
         if test $argv[1] = $cmd[2]
             return 0
@@ -13,7 +12,6 @@ function __fish_canto_using_command
     end
     return 1
 end
-
 
 complete -f -c canto -s h -l help -d 'Show Help'
 complete -f -c canto -s v -l version -d 'Show version'

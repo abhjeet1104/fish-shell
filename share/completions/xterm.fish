@@ -1,6 +1,5 @@
 # completion for xterm
 
-
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +ah -d 'Never highlight the text cursor'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +ai -d 'Enable active icon support'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +aw -d 'Disallow auto wraparound'
@@ -44,7 +43,7 @@ complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +tb -d 'Don\'t 
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +u8 -d 'Don\'t use UTF-8'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +ulc -d 'Display characters with underline attribute as color'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +ut -d 'Write to the system utmp log file'
-complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +vb -d 'Don\'t use visual bell insead of audio bell'
+complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +vb -d 'Don\'t use visual bell instead of audio bell'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +wc -d 'Don\'t use wide characters'
 complete -c xterm -n 'string match "+*" -- (commandline -ct)' -a +wf -d 'Don\'t wait the first time for the window to be mapped'
 
@@ -93,12 +92,12 @@ complete -c xterm -o tb -d 'Display toolbar or menubar'
 complete -c xterm -o u8 -d 'Use UTF-8'
 complete -c xterm -o ulc -d 'Don\'t display characters with underline attribute as color'
 complete -c xterm -o ut -d 'Don\'t write to the system utmp log file'
-complete -c xterm -o vb -d 'Use visual bell insead of audio bell'
+complete -c xterm -o vb -d 'Use visual bell instead of audio bell'
 complete -c xterm -o wc -d 'Use wide characters'
 complete -c xterm -o wf -d 'Wait the first time for the window to be mapped'
 complete -c xterm -o Sccn -d 'Use as input/output channel for an existing program'
 
-complete -c xterm -s e -a "(complete -C (printf %s\n (commandline -ot)))" -x -d 'Run program in xterm'
+complete -c xterm -s e -a "(__fish_complete_subcommand)" -x -d 'Run program in xterm'
 
 complete -r -c xterm -o bcf -d 'Blinking cursor will be off for that many milliseconds'
 complete -r -c xterm -o bcn -d 'Blinking cursor will be on for that many milliseconds'

@@ -17,7 +17,6 @@ complete -c ls -s t -d "Sort by modified time, most recent first"
 complete -c ls -s u -d "Sort by access time, (-l) show atime"
 complete -c ls -s x -d "Multi-column output, horizontally listed"
 
-
 # Test if we are using GNU ls
 if ls --version >/dev/null 2>/dev/null
     complete -c ls -s a -l all -d "Show hidden"
@@ -91,7 +90,7 @@ else
     ####              ls on eunichs                  ####
     # From latest checked-in man pages as of Nov 2018.
     # Reformatted with Open Group's ordering and spacing,
-    # then sorted by prevelance, consolidating option
+    # then sorted by prevalence, consolidating option
     # matches.
 
     #              [         IEEE 1003.1-2017 options         ]  [   extension options  ]
@@ -117,7 +116,7 @@ else
     complete -c ls -s g -d "Show group instead of owner in long format"
     complete -c ls -s n -d "Long format, numerical UIDs and GIDs"
     contains "$uname" FreeBSD NetBSD OpenBSD DragonFly
-    and complete -c ls -o o -d "Long format, show file flags" # annoying BSD
+    and complete -c ls -s o -d "Long format, show file flags" # annoying BSD
     or complete -c ls -s o -d "Long format, omit group names" # annoying POSIX
 
     complete -c ls -s A -d "Show hidden except . and .."

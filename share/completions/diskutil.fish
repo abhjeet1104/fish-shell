@@ -21,7 +21,6 @@ function __fish_diskutil_using_not_subcommand
     and __fish_seen_subcommand_from $argv
 end
 
-
 ############
 # Commands #
 ############
@@ -53,8 +52,8 @@ complete -f -c diskutil -n __fish_use_subcommand -a umountDisk -d 'Unmount an en
 complete -f -c diskutil -n '__fish_diskutil_using_not_subcommand umountDisk' -a '(__fish_diskutil_mounted_volumes)'
 
 # eject
-complete -f -c diskutil -n __fish_use_subcommand -a eject -d 'Eject a disk'
-complete -f -c diskutil -n '__fish_diskutil_using_not_subcommand eject' -a '(__fish_diskutil_devices)'
+complete -f -c diskutil -n __fish_use_subcommand -a eject -d 'Eject a volume or disk'
+complete -f -c diskutil -n '__fish_diskutil_using_not_subcommand eject' -a '(__fish_diskutil_volumes ; __fish_diskutil_devices)'
 
 # mount
 complete -f -c diskutil -n __fish_use_subcommand -a mount -d 'Mount a single volume'

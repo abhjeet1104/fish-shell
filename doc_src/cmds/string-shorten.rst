@@ -8,8 +8,8 @@ Synopsis
 
 .. synopsis::
 
-    string shorten [(-c | --char) CHARS] [(-m | --max) INTEGER] [(-N | --no-newline)] [(-l | --left)]
-               [STRING ...]
+    string shorten [(-c | --char) CHARS] [(-m | --max) INTEGER]
+                   [-N | --no-newline] [-l | --left] [-q | --quiet] [STRING ...]
 
 .. END SYNOPSIS
 
@@ -22,7 +22,7 @@ Description
 
 The escape sequences reflect what fish knows about, and how it computes its output. Your terminal might support more escapes, or not support escape sequences that fish knows about.
 
-If **-m** or **--max** is given, truncate at the given width. Otherwise, the lowest non-zero width of all input strings is used.
+If **-m** or **--max** is given, truncate at the given width. Otherwise, the lowest non-zero width of all input strings is used. A max of 0 means no shortening takes place, all STRINGs are printed as-is.
 
 If **-N** or **--no-newline** is given, only the first line (or last line with **--left**) of each STRING is used, and an ellipsis is added if it was multiline. This only works for STRINGs being given as arguments, multiple lines given on stdin will be interpreted as separate STRINGs instead.
 
@@ -30,7 +30,11 @@ If **-c** or **--char** is given, add *CHAR* instead of an ellipsis. This can al
 
 If **-l** or **--left** is given, remove text from the left on instead, so this prints the longest *suffix* of the string that fits. With **--no-newline**, this will take from the last line instead of the first.
 
+If **-q** or **--quiet** is given, ``string shorten`` only runs for the return value - if anything would be shortened, it returns 0, else 1.
+
 The default ellipsis is ``…``. If fish thinks your system is incapable because of your locale, it will use ``...`` instead.
+
+The return value is 0 if any shortening occurred, 1 otherwise.
 
 .. END DESCRIPTION
 
@@ -77,13 +81,15 @@ Examples
     # Taking 20 columns from the right instead:
     …in-path-with-expand
 
+.. END EXAMPLES
+
 See Also
 --------
 
+.. BEGIN SEEALSO
+
 - :ref:`string<cmd-string>`'s ``pad`` subcommand does the inverse of this command, adding padding to a specific width instead.
   
-- The :ref:`printf <cmd-printf>` command can do simple padding, for example ``printf %10s\n`` works like ``string pad -w10``.
+- The :doc:`printf <printf>` command can do simple padding, for example ``printf %10s\n`` works like ``string pad -w10``.
 
-- :ref:`string length <cmd-string-length>` with the ``--visible`` option can be used to show what fish thinks the width is.
-
-.. END EXAMPLES
+- :doc:`string length <string-length>` with the ``--visible`` option can be used to show what fish thinks the width is.

@@ -13,6 +13,11 @@ Synopsis
 Description
 -----------
 
+.. only:: builder_man
+
+          NOTE: This page documents the fish builtin ``wait``.
+          To see the documentation on any non-fish versions, use ``command man wait``.
+
 ``wait`` waits for child jobs to complete.
 
 If a *PID* is specified, the command waits for the job that the process with that process ID belongs to.
@@ -41,7 +46,7 @@ spawns ``sleep`` in the background, and then waits until it finishes.
     for i in (seq 1 5); sleep 10 &; end
     wait
 
-spawns five jobs in the background, and then waits until all of them finishes.
+spawns five jobs in the background, and then waits until all of them finish.
 
 
 ::
@@ -50,4 +55,4 @@ spawns five jobs in the background, and then waits until all of them finishes.
     hoge &
     wait sleep
 
-spawns five jobs and ``hoge`` in the background, and then waits until all ``sleep``\s finish, and doesn't wait for ``hoge`` finishing.
+spawns five ``sleep`` jobs and ``hoge`` in the background, and then waits until all ``sleep``\s finish, and doesn't wait for ``hoge``.

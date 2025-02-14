@@ -1,7 +1,7 @@
 # Completion for bundler
 
 function __fish_bundle_no_command -d 'Test if bundle has been given no subcommand'
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
     if test (count $cmd) -eq 1
         return 0
     end
@@ -9,7 +9,7 @@ function __fish_bundle_no_command -d 'Test if bundle has been given no subcomman
 end
 
 function __fish_bundle_using_command -d 'Test if bundle has been given a specific subcommand'
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
     if test (count $cmd) -gt 1
         if test $argv[1] = $cmd[2]
             return 0
@@ -43,7 +43,7 @@ complete -f -n '__fish_bundle_using_command install' -c bundle -l system -d 'Ins
 complete -f -n '__fish_bundle_using_command install' -c bundle -l without -d 'A space-separated list of groups to skip installing'
 complete -f -n '__fish_bundle_using_command install' -c bundle -l local -d 'Use cached gems instead of connecting to rubygems.org'
 complete -f -n '__fish_bundle_using_command install' -c bundle -l deployment -d "Switches bundler's defaults into deployment mode."
-complete -f -n '__fish_bundle_using_command install' -c bundle -l binstubs -d 'Create a directory containing executabes that run in the context of the bundle'
+complete -f -n '__fish_bundle_using_command install' -c bundle -l binstubs -d 'Create a directory containing executables that run in the context of the bundle'
 complete -f -n '__fish_bundle_using_command install' -c bundle -l shebang -d 'Specify a ruby executable to use with generated binstubs'
 complete -f -n '__fish_bundle_using_command install' -c bundle -l standalone -d 'Make a bundle that can work without RubyGems or Bundler at run-time'
 complete -f -n '__fish_bundle_using_command install' -c bundle -s P -l trust-policy -d 'Apply a RubyGems security policy: {High,Medium,Low,No}Security'

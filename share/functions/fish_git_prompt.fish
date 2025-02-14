@@ -18,7 +18,7 @@ function __fish_git_prompt_show_upstream --description "Helper function for fish
     set -l name
 
     # Default to informative if __fish_git_prompt_show_informative_status is set
-    if set -q __fish_git_prompt_show_informative_status
+    if contains -- "$__fish_git_prompt_show_informative_status" yes true 1
         set informative 1
     end
 
@@ -168,10 +168,37 @@ function __fish_git_prompt_show_upstream --description "Helper function for fish
     test "$count" = "0 0"
 end
 
+# Decide if git is safe to run.
+# On Darwin, git is pre-installed as a stub, which will pop a dialog if you run it.
+if string match -q Darwin -- (uname) && string match -q /usr/bin/git -- (command -s git) && type -q xcode-select && type -q xcrun
+    if not xcode-select --print-path &>/dev/null
+        # Only the stub git is installed.
+        # Do not try to run it.
+        function __fish_git_prompt_ready
+            return 1
+        end
+    else
+        # git is installed, but on the first run it may be very slow as xcrun needs to populate the cache.
+        # Kick it off in the background to populate the cache.
+        /bin/sh -c '/usr/bin/git --version; touch /tmp/__fish_git_ready' &>/dev/null &
+        disown $last_pid &>/dev/null
+        function __fish_git_prompt_ready
+            path is /tmp/__fish_git_ready || return 1
+            # git is ready, erase the function.
+            functions -e __fish_git_prompt_ready
+            return 0
+        end
+    end
+end
+
 function fish_git_prompt --description "Prompt function for Git"
     # If git isn't installed, there's nothing we can do
     # Return 1 so the calling prompt can deal with it
     if not command -sq git
+        return 1
+    end
+    # Fail if __fish_git_prompt_ready is defined and fails.
+    if functions -q __fish_git_prompt_ready && not __fish_git_prompt_ready
         return 1
     end
     set -l repo_info (command git rev-parse --git-dir --is-inside-git-dir --is-bare-repository --is-inside-work-tree HEAD 2>/dev/null)
@@ -230,14 +257,16 @@ function fish_git_prompt --description "Prompt function for Git"
     end
 
     # If we don't print these, there is no need to compute them. Note: For now, staged and dirty are coupled.
-    if not set -q dirty[1] && set -q __fish_git_prompt_showdirtystate
-        set dirty true
+    if not set -q dirty[1]
+        contains -- "$__fish_git_prompt_showdirtystate" yes true 1
+        and set dirty true
     end
     contains dirtystate $__fish_git_prompt_status_order || contains stagedstate $__fish_git_prompt_status_order
     or set dirty false
 
-    if not set -q untracked[1] && set -q __fish_git_prompt_showuntrackedfiles
-        set untracked true
+    if not set -q untracked[1]
+        contains -- "$__fish_git_prompt_showuntrackedfiles" yes true 1
+        and set untracked true
     end
     contains untrackedfiles $__fish_git_prompt_status_order
     or set untracked false
@@ -249,7 +278,7 @@ function fish_git_prompt --description "Prompt function for Git"
         # This is to allow overrides for the repository.
         if test "$informative" = true
             or begin
-                set -q __fish_git_prompt_show_informative_status
+                contains -- "$__fish_git_prompt_show_informative_status" yes true 1
                 and test "$dirty" != false
             end
             set informative_status (untracked=$untracked __fish_git_prompt_informative_status $git_dir)
@@ -270,9 +299,9 @@ function fish_git_prompt --description "Prompt function for Git"
                 # Ignored files are omitted by default
                 set -l stat (command git -c core.fsmonitor= status --porcelain -z $opt | string split0)
 
-                set dirtystate (string match -qr '^.[ACDMR]' -- $stat; and echo 1)
+                set dirtystate (string match -qr '^.[ACDMRTU]' -- $stat; and echo 1)
                 if test -n "$sha"
-                    set stagedstate (string match -qr '^[ACDMR].' -- $stat; and echo 1)
+                    set stagedstate (string match -qr '^[ACDMRTU].' -- $stat; and echo 1)
                 else
                     set invalidstate 1
                 end
@@ -281,21 +310,28 @@ function fish_git_prompt --description "Prompt function for Git"
                 and set untrackedfiles (string match -qr '\?\?' -- $stat; and echo 1)
             end
 
-            if set -q __fish_git_prompt_showstashstate
+            if contains -- "$__fish_git_prompt_showstashstate" yes true 1
                 and test -r $git_dir/logs/refs/stash
-                set stashstate 1
+                # If we have informative status but don't want to actually
+                # *compute* the informative status, we might still count the stash.
+                if contains -- "$__fish_git_prompt_show_informative_status" yes true 1
+                    set stashstate (count < $git_dir/logs/refs/stash)
+                else
+                    set stashstate 1
+                end
             end
         end
 
+        # (showupstream has a variety of options, not just bool)
         if set -q __fish_git_prompt_showupstream
-            or set -q __fish_git_prompt_show_informative_status
+            or contains -- "$__fish_git_prompt_show_informative_status" yes true 1
             set p (__fish_git_prompt_show_upstream)
         end
     end
 
     set -l branch_color $___fish_git_prompt_color_branch
     set -l branch_done $___fish_git_prompt_color_branch_done
-    if set -q __fish_git_prompt_showcolorhints
+    if contains -- "$__fish_git_prompt_showcolorhints" yes true 1
         if test $detached = yes
             set branch_color $___fish_git_prompt_color_branch_detached
             set branch_done $___fish_git_prompt_color_branch_detached_done
@@ -319,7 +355,12 @@ function fish_git_prompt --description "Prompt function for Git"
             set -l color_done $$color_done_var
             set -l symbol $$symbol_var
 
-            set f "$f$color$symbol$color_done"
+            # If we count some things, print the number
+            # This won't be done if we actually do the full informative status
+            # because that does the printing.
+            contains -- "$__fish_git_prompt_show_informative_status" yes true 1
+            and set f "$f$color$symbol$$i$color_done"
+            or set f "$f$color$symbol$color_done"
         end
     end
 
@@ -332,7 +373,7 @@ function fish_git_prompt --description "Prompt function for Git"
     if test -n "$b"
         set b "$branch_color$b$branch_done"
         if test -z "$dirtystate$untrackedfiles$stagedstate"; and test -n "$___fish_git_prompt_char_cleanstate"
-            and not set -q __fish_git_prompt_show_informative_status
+            and not contains -- "$__fish_git_prompt_show_informative_status" yes true 1
             set b "$b$___fish_git_prompt_color_cleanstate$___fish_git_prompt_char_cleanstate$___fish_git_prompt_color_cleanstate_done"
         end
     end
@@ -347,7 +388,9 @@ function fish_git_prompt --description "Prompt function for Git"
     end
 
     # Formatting
-    if test -n "$f"
+    # If we have state, a bare repo or upstream difference, add a separator.
+    # merging is already separate.
+    if test -n "$f$c$p"
         set f "$space$f"
     end
     set -l format $argv[1]
@@ -363,7 +406,7 @@ end
 function __fish_git_prompt_informative_status
     set -l stashstate 0
     set -l stashfile "$argv[1]/logs/refs/stash"
-    if set -q __fish_git_prompt_showstashstate; and test -e "$stashfile"
+    if contains -- "$__fish_git_prompt_showstashstate" yes true 1; and test -e "$stashfile"
         set stashstate (count < $stashfile)
     end
 
@@ -379,16 +422,13 @@ function __fish_git_prompt_informative_status
     # The v2 format is better, but we don't actually care in this case.
     set -l stats (string sub -l 2 (git -c core.fsmonitor= status --porcelain -z $untr | string split0))
     set -l invalidstate (string match -r '^UU' $stats | count)
-    set -l stagedstate (string match -r '^[ACDMR].' $stats | count)
-    set -l dirtystate (string match -r '^.[ACDMR]' $stats | count)
+    set -l stagedstate (string match -r '^[ACDMRT].' $stats | count)
+    set -l dirtystate (string match -r '^.[ACDMRT]' $stats | count)
     set -l untrackedfiles (string match -r '^\?\?' $stats | count)
 
     set -l info
 
-    # If `math` fails for some reason, assume the state is clean - it's the simpler path
-    set -l state (math $dirtystate + $invalidstate + $stagedstate + $untrackedfiles + $stashstate 2>/dev/null)
-    if test -z "$state"
-        or test "$state" = 0
+    if test "$dirtystate$invalidstate$stagedstate$untrackedfiles$stashstate" = 00000
         if test -n "$___fish_git_prompt_char_cleanstate"
             set info $___fish_git_prompt_color_cleanstate$___fish_git_prompt_char_cleanstate$___fish_git_prompt_color_cleanstate_done
         end
@@ -518,8 +558,8 @@ function __fish_git_prompt_set_char
 
     if set -q argv[3]
         and begin
-            set -q __fish_git_prompt_show_informative_status
-            or set -q __fish_git_prompt_use_informative_chars
+            contains -- "$__fish_git_prompt_show_informative_status" yes true 1
+            or contains -- "$__fish_git_prompt_use_informative_chars" yes true 1
         end
         set char $argv[3]
     end
@@ -534,7 +574,7 @@ end
 
 function __fish_git_prompt_validate_chars --description "fish_git_prompt helper, checks char variables"
     # cleanstate is only defined with actual informative status.
-    set -q __fish_git_prompt_show_informative_status
+    contains -- "$__fish_git_prompt_show_informative_status" yes true 1
     and __fish_git_prompt_set_char __fish_git_prompt_char_cleanstate '✔'
     or __fish_git_prompt_set_char __fish_git_prompt_char_cleanstate ''
 
@@ -582,7 +622,6 @@ function __fish_git_prompt_set_color
     end
 end
 
-
 function __fish_git_prompt_validate_colors --description "fish_git_prompt helper, checks color variables"
 
     # Base color defaults to nothing (must be done first)
@@ -598,7 +637,7 @@ function __fish_git_prompt_validate_colors --description "fish_git_prompt helper
     __fish_git_prompt_set_color __fish_git_prompt_color_upstream
 
     # Colors with defaults with showcolorhints
-    if set -q __fish_git_prompt_showcolorhints
+    if contains -- "$__fish_git_prompt_showcolorhints" yes true 1
         __fish_git_prompt_set_color __fish_git_prompt_color_flags (set_color --bold blue)
         __fish_git_prompt_set_color __fish_git_prompt_color_branch (set_color green)
         __fish_git_prompt_set_color __fish_git_prompt_color_dirtystate (set_color red)

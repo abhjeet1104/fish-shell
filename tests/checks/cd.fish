@@ -1,4 +1,4 @@
-# RUN: %fish -C 'set -g fish %fish' %s
+# RUN: fish=%fish %fish %s
 
 set -g fish (realpath $fish)
 
@@ -194,6 +194,12 @@ cd $old_path
 cd file
 cd $old_path
 
+# Test that going up to the root directory using .. works
+cd /(string split --no-empty -f 1 / (pwd))
+cd ..
+pwd
+#CHECK: /
+
 # cd back before removing the test directory again.
 cd $oldpwd
 rm -Rf $base
@@ -258,3 +264,49 @@ end
 # CHECKERR: ^
 # CHECKERR: in function 'cd' with arguments 'broken-symbolic-link'
 # CHECKERR: called on line {{\d+}} of file {{.*}}/cd.fish
+
+begin
+    mkdir -p foo/bar/muf
+    set -lx CDPATH foo/bar
+    cd muf
+    echo $PWD | grep -q ^/ && echo '$PWD is absolute'
+    # CHECK: $PWD is absolute
+    cd ../../..
+end
+
+complete -C'cd .'
+# CHECK: ../
+# CHECK: ./
+
+# Check that cd works with minimal permissions (issue #10432).
+# This is first supported on macOS 12.
+# `sysctl kern.osproductversion` emits something like:
+#   kern.osproductversion: 14.3.1
+# Note that there is no kern.osproductversion under older OS X releases!
+#
+# NetBSD 10 does not support it.
+if test (uname) = NetBSD || begin; test (uname) = "Darwin" && test (sysctl kern.osproductversion 2>/dev/null | string match -r \\d+; or echo 10) -lt 12; end
+    # Not supported. Satisfy the CHECKs below.
+    echo fake/a
+    echo fake/a/b
+    echo c
+else
+    set -l oldpwd (pwd)
+    set -l tmp (mktemp -d)
+    cd $tmp
+    mkdir -p a/b/c
+    chmod -r a
+
+    cd a; pwd
+    # CHECK: {{.*}}/a
+
+    cd b
+    pwd
+    ls
+    # CHECK: {{.*}}/a/b
+    # CHECK: c
+
+    cd $oldpwd
+    chmod -R +rx $tmp # we must be able to list the directory to delete its children
+    rm -rf $tmp
+end

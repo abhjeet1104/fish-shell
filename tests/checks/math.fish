@@ -72,9 +72,16 @@ math '-10^15'
 # CHECK: 100000000000000
 # CHECK: -1000000000000000
 
-math 3^0.5^2
+# Floating point operations under x86 without SSE2 have reduced accuracy!
+# This includes both i586 targets and i686 under Debian, where it's patched to remove SSE2.
+# As a result, some floating point tests use regular expressions to loosely match against
+# the shape of the expected result.
+
+# NB: The i586 case should also pass under other platforms, but not the other way around.
+math "3^0.5^2"
+# CHECK: {{1\.316074|1\.316\d+}}
+
 math -2^2
-# CHECK: 1.316074
 # CHECK: 4
 
 math -s0 '1.0 / 2.0'
@@ -120,6 +127,12 @@ not math 'blah()'
 # CHECKERR: 'blah()'
 # CHECKERR:  ^~~^
 
+# There is also no "Blah" function.
+not math 'Blah()'
+# CHECKERR: math: Error: Unknown function
+# CHECKERR: 'Blah()'
+# CHECKERR:  ^~~^
+
 math n + 4
 # CHECKERR: math: Error: Unknown function
 # CHECKERR: 'n + 4'
@@ -161,6 +174,17 @@ not math -s 12
 not math 2^999999
 # CHECKERR: math: Error: Result is infinite
 # CHECKERR: '2^999999'
+not math 'sqrt(-1)'
+# CHECKERR: math: Error: Result is not a number
+# CHECKERR: 'sqrt(-1)'
+math 'sqrt(-0)'
+# CHECK: -0
+not math 2^53 + 1
+# CHECKERR: math: Error: Result magnitude is too large
+# CHECKERR: '2^53 + 1'
+not math -2^53 - 1
+# CHECKERR: math: Error: Result magnitude is too large
+# CHECKERR: '-2^53 - 1'
 printf '<%s>\n' (not math 1 / 0 2>&1)
 # CHECK: <math: Error: Division by zero>
 # CHECK: <'1 / 0'>
@@ -269,7 +293,7 @@ math pow sin 3, 5 + 2
 # CHECKERR:             ^~~~^
 
 math sin pow 3, 5
-# CHECK: -0.890009
+# CHECK: {{-0\.890009|-0.890\d*}}
 
 math pow 2, cos -pi
 # CHECK: 0.5
@@ -335,3 +359,67 @@ math 0x0_2.0_0_0P0_2
 # CHECK: 8
 math -0x8p-0_3
 # CHECK: -1
+
+echo 5 + 6 | math
+# CHECK: 11
+
+# Historical: If we have arguments on stdin and argv,
+# the former takes precedence and the latter is ignored entirely.
+echo 7 + 6 | math 2 + 2
+# CHECK: 13
+
+# It isn't checked at all.
+echo 7 + 8 | math not an expression
+# CHECK: 15
+
+math (string repeat -n 1000 1) 2>| string shorten -m50 --char=""
+# CHECK: math: Error: Number is too large
+# CHECK: '1111111111111111111111111111111111111111111111111
+# CHECK:  ^
+
+math 0x0_2.0P-0x3
+# CHECKERR: math: Error: Unknown function
+# CHECKERR: '0x0_2.0P-0x3'
+# CHECKERR:            ^^
+math 0x0_2.0P-f
+# CHECKERR: math: Error: Unexpected token
+# CHECKERR: '0x0_2.0P-f'
+# CHECKERR:           ^
+math "22 / 5 - 5"
+# CHECK: -0.6
+math -s 0 --scale-mode=truncate "22 / 5 - 5"
+# CHECK: -0
+math --scale=0 -m truncate "22 / 5 - 5"
+# CHECK: -0
+math -s 0 --scale-mode=floor "22 / 5 - 5"
+# CHECK: -1
+math -s 0 --scale-mode=round "22 / 5 - 5"
+# CHECK: -1
+math -s 0 --scale-mode=ceiling "22 / 5 - 5"
+# CHECK: -0
+math "1 / 3 - 1"
+# CHECK: -0.666667
+math --scale-mode=truncate "1 / 3 - 1"
+# CHECK: -0.666666
+math --scale-mode=floor "1 / 3 - 1"
+# CHECK: {{-0.666667|-0.666668}}
+math --scale-mode=floor "2 / 3 - 1"
+# CHECK: {{-0.333334|-0.333335}}
+math --scale-mode=round "1 / 3 - 1"
+# CHECK: {{-0.666667|-0.666668}}
+math --scale-mode=ceiling "1 / 3 - 1"
+# CHECK: -0.666666
+math --scale-mode=ceiling "2 / 3 - 1"
+# CHECK: -0.333333
+math -s 6 --scale-mode=truncate "1 / 3 - 1"
+# CHECK: -0.666666
+math -s 6 --scale-mode=floor "1 / 3 - 1"
+# CHECK: {{-0.666667|-0.666668}}
+math -s 6 --scale-mode=floor "2 / 3 - 1"
+# CHECK: {{-0.333334|-0.333335}}
+math -s 6 --scale-mode=round "1 / 3 - 1"
+# CHECK: {{-0.666667|-0.666668}}
+math -s 6 --scale-mode=ceiling "1 / 3 - 1"
+# CHECK: -0.666666
+math -s 6 --scale-mode=ceiling "2 / 3 - 1"
+# CHECK: -0.333333

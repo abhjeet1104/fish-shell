@@ -3,21 +3,48 @@
 ## --- WRITTEN MANUALLY ---
 set -l __fish_cargo_subcommands (cargo --list 2>&1 | string replace -rf '^\s+([^\s]+)\s*(.*)' '$1\t$2' | string escape)
 
-# Append user-installed extensions (e.g. cargo-foo, invokable as `cargo foo`) to the list of subcommands (à la git)
+# Append user-installed extensions (e.g. cargo-foo, invocable as `cargo foo`) to the list of subcommands (à la git)
 set -la __fish_cargo_subcommands (complete -C'cargo-' | string replace -rf '^cargo-(\w+).*' '$1')
 
 complete -c cargo -f -c cargo -n __fish_use_subcommand -a "$__fish_cargo_subcommands"
 complete -c cargo -x -c cargo -n '__fish_seen_subcommand_from help' -a "$__fish_cargo_subcommands"
 
-for x in bench b build rustc t test
+for x in bench b build c check rustc t test
     complete -c cargo -x -n "__fish_seen_subcommand_from $x" -l bench -a "(cargo bench --bench 2>&1 | string replace -rf '^\s+' '')"
     complete -c cargo -n "__fish_seen_subcommand_from $x" -l lib -d 'Only this package\'s library'
     complete -c cargo -x -n "__fish_seen_subcommand_from $x" -l test -a "(cargo test --test 2>&1 | string replace -rf '^\s+' '')"
 end
 
-for x in bench b build r run rustc t test
+for x in bench b build c check r run rustc t test
     complete -c cargo -x -n "__fish_seen_subcommand_from $x" -l bin -a "(cargo run --bin 2>&1 | string replace -rf '^\s+' '')"
     complete -c cargo -x -n "__fish_seen_subcommand_from $x" -l example -a "(cargo run --example 2>&1 | string replace -rf '^\s+' '')"
+end
+
+# If using rustup, get the list of installed targets from there. Otherwise print all targets.
+#
+# NB: I wasn't sure if it's possible to manually target a platform you don't have the corresponding toolchain for installed,
+# and it turns out indeed this isn't strictly correct if you choose to manually compile the standard library (-Zbuild-std,
+# nightly only) and are targeting a platform that your native linker also supports, e.g.
+# `cargo build +nightly -Zbuild-std --target=i586-unknown-linux-gnu` works even if you only have the i686-unknown-linux-gnu
+# toolchain installed.
+#
+# Ideally, we'd use rustup's "installed targets" but fall back to completions from rustc's "all targets" list, but we don't
+# have an easy way to do that in the `complete` machinery at this time.
+function __fish_cargo_targets
+    if command -q rustup
+        functions -q __rustup_installed_targets || source (path dirname (status current-filename))/rustup.fish
+        __rustup_installed_targets
+    else
+        rustc --print target-list
+    end
+end
+
+function __fish_cargo_features
+    if command -q jq
+        cargo read-manifest | jq -r '.features | keys | .[]' | __fish_concat_completions
+    else if set -l python (__fish_anypython)
+        cargo read-manifest | command $python -Sc "import sys, json"\n"print(*json.load(sys.stdin)['features'].keys(), sep='\n')" | __fish_concat_completions
+    end
 end
 
 function __fish_cargo_packages
@@ -26,7 +53,7 @@ end
 complete -c cargo -n '__fish_seen_subcommand_from run test build debug check' -l package \
     -xa "(__fish_cargo_packages)"
 
-# Look up crates.io crates matching the the single argument provided to this function
+# Look up crates.io crates matching the single argument provided to this function
 function __fish_cargo_search
     if test (string length -- "$argv[1]") -le 2
         # Don't waste time searching for strings with too many results to realistically
@@ -47,8 +74,8 @@ end
 complete -c cargo -n '__fish_seen_subcommand_from add install' -n '__fish_is_nth_token 2' \
     -a "(__fish_cargo_search (commandline -ct))"
 
-
 ## --- AUTO-GENERATED WITH `cargo complete fish` ---
+# Manually massaged to improve some descriptions
 complete -c cargo -n __fish_use_subcommand -l explain -d 'Run `rustc --explain CODE`'
 complete -c cargo -n __fish_use_subcommand -l color -d 'Coloring: auto, always, never'
 complete -c cargo -n __fish_use_subcommand -l config -d 'Override a configuration value (unstable)'
@@ -66,7 +93,6 @@ complete -c cargo -n __fish_use_subcommand -f -a build -d 'Compile a local packa
 complete -c cargo -n __fish_use_subcommand -f -a check -d 'Check a local package and all of its dependencies for errors'
 complete -c cargo -n __fish_use_subcommand -f -a clean -d 'Remove artifacts that cargo has generated in the past'
 complete -c cargo -n __fish_use_subcommand -f -a complete -d 'Generate completion file for a shell'
-complete -c cargo -n __fish_use_subcommand -f -a describe-future-incompatibilities -d 'Reports any crates which will eventually stop compiling'
 complete -c cargo -n __fish_use_subcommand -f -a doc -d 'Build a package\'s documentation'
 complete -c cargo -n __fish_use_subcommand -f -a fetch -d 'Fetch dependencies of a package from the network'
 complete -c cargo -n __fish_use_subcommand -f -a fix -d 'Automatically fix lint warnings reported by rustc'
@@ -75,17 +101,14 @@ complete -c cargo -n __fish_use_subcommand -f -a git-checkout -d 'This subcomman
 complete -c cargo -n __fish_use_subcommand -f -a init -d 'Create a new cargo package in an existing directory'
 complete -c cargo -n __fish_use_subcommand -f -a install -d 'Install a Rust binary. Default location is $HOME/.cargo/bin'
 complete -c cargo -n __fish_use_subcommand -f -a locate-project -d 'Print a JSON representation of a Cargo.toml file\'s location'
-complete -c cargo -n __fish_use_subcommand -f -a login -d 'Save an api token from the registry locally. If token is not specified, it will be read from stdin.'
+complete -c cargo -n __fish_use_subcommand -f -a login -d 'Save an API token from argument or stdin for authentication'
 complete -c cargo -n __fish_use_subcommand -f -a logout -d 'Remove an API token from the registry locally'
-complete -c cargo -n __fish_use_subcommand -f -a metadata -d 'Output the resolved dependencies of a package, the concrete used versions including overrides, in machine-readable format'
+complete -c cargo -n __fish_use_subcommand -f -a metadata -d 'Output the resolved dependencies of a package in machine-readable format'
 complete -c cargo -n __fish_use_subcommand -f -a new -d 'Create a new cargo package at <path>'
 complete -c cargo -n __fish_use_subcommand -f -a owner -d 'Manage the owners of a crate on the registry'
 complete -c cargo -n __fish_use_subcommand -f -a package -d 'Assemble the local package into a distributable tarball'
 complete -c cargo -n __fish_use_subcommand -f -a pkgid -d 'Print a fully qualified package specification'
 complete -c cargo -n __fish_use_subcommand -f -a publish -d 'Upload a package to the registry'
-complete -c cargo -n __fish_use_subcommand -f -a read-manifest -d 'Print a JSON representation of a Cargo.toml manifest.
-
-Deprecated, use `cargo metadata --no-deps` instead.'
 complete -c cargo -n __fish_use_subcommand -f -a run -d 'Run a binary or example of the local package'
 complete -c cargo -n __fish_use_subcommand -f -a rustc -d 'Compile a package, and pass extra options to the compiler'
 complete -c cargo -n __fish_use_subcommand -f -a rustdoc -d 'Build a package\'s documentation, using specified custom flags.'
@@ -106,8 +129,8 @@ complete -c cargo -n "__fish_seen_subcommand_from bench" -l bench -d 'Benchmark 
 complete -c cargo -n "__fish_seen_subcommand_from bench" -s p -l package -d 'Package to run benchmarks for'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l exclude -d 'Exclude packages from the benchmark'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
-complete -c cargo -n "__fish_seen_subcommand_from bench" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from bench" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from bench" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from bench" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l message-format -d 'Error format'
@@ -122,7 +145,6 @@ complete -c cargo -n "__fish_seen_subcommand_from bench" -l tests -d 'Benchmark 
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l benches -d 'Benchmark all benches'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l all-targets -d 'Benchmark all targets'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l no-run -d 'Compile, but don\'t run benchmarks'
-complete -c cargo -n "__fish_seen_subcommand_from bench" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l workspace -d 'Benchmark all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l all-features -d 'Activate all available features'
 complete -c cargo -n "__fish_seen_subcommand_from bench" -l no-default-features -d 'Do not activate the `default` feature'
@@ -143,8 +165,8 @@ complete -c cargo -n "__fish_seen_subcommand_from build" -l example -d 'Build on
 complete -c cargo -n "__fish_seen_subcommand_from build" -l test -d 'Build only the specified test target'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l bench -d 'Build only the specified bench target'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from build" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from build" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from build" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from build" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from build" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l out-dir -d 'Copy final artifacts to this directory (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l manifest-path -d 'Path to Cargo.toml'
@@ -153,7 +175,6 @@ complete -c cargo -n "__fish_seen_subcommand_from build" -l color -d 'Coloring: 
 complete -c cargo -n "__fish_seen_subcommand_from build" -l config -d 'Override a configuration value (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -s Z -d 'Unstable (nightly-only) flags to Cargo, see \'cargo -Z help\' for details'
 complete -c cargo -n "__fish_seen_subcommand_from build" -s q -l quiet -d 'No output printed to stdout'
-complete -c cargo -n "__fish_seen_subcommand_from build" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l workspace -d 'Build all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l lib -d 'Build only this package\'s library'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l bins -d 'Build all binaries'
@@ -167,7 +188,7 @@ complete -c cargo -n "__fish_seen_subcommand_from build" -l no-default-features 
 complete -c cargo -n "__fish_seen_subcommand_from build" -l ignore-rust-version -d 'Ignore `rust-version` specification in packages (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l build-plan -d 'Output the build plan in JSON (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -l unit-graph -d 'Output build graph in JSON (unstable)'
-complete -c cargo -n "__fish_seen_subcommand_from build" -l future-incompat-report -d 'Ouputs a future incompatibility report at the end of the build (unstable)'
+complete -c cargo -n "__fish_seen_subcommand_from build" -l future-incompat-report -d 'Output a future incompatibility report after build (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from build" -s h -l help -d 'Prints help information'
 complete -c cargo -n "__fish_seen_subcommand_from build" -s V -l version -d 'Prints version information'
 complete -c cargo -n "__fish_seen_subcommand_from build" -s v -l verbose -d 'Use verbose output (-vv very verbose/build.rs output)'
@@ -182,8 +203,8 @@ complete -c cargo -n "__fish_seen_subcommand_from check" -l example -d 'Check on
 complete -c cargo -n "__fish_seen_subcommand_from check" -l test -d 'Check only the specified test target'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l bench -d 'Check only the specified bench target'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l profile -d 'Check artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from check" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from check" -l target -d 'Check for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from check" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from check" -l target -d 'Check for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from check" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l message-format -d 'Error format'
@@ -191,7 +212,6 @@ complete -c cargo -n "__fish_seen_subcommand_from check" -l color -d 'Coloring: 
 complete -c cargo -n "__fish_seen_subcommand_from check" -l config -d 'Override a configuration value (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from check" -s Z -d 'Unstable (nightly-only) flags to Cargo, see \'cargo -Z help\' for details'
 complete -c cargo -n "__fish_seen_subcommand_from check" -s q -l quiet -d 'No output printed to stdout'
-complete -c cargo -n "__fish_seen_subcommand_from check" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l workspace -d 'Check all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l lib -d 'Check only this package\'s library'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l bins -d 'Check all binaries'
@@ -204,7 +224,7 @@ complete -c cargo -n "__fish_seen_subcommand_from check" -l all-features -d 'Act
 complete -c cargo -n "__fish_seen_subcommand_from check" -l no-default-features -d 'Do not activate the `default` feature'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l ignore-rust-version -d 'Ignore `rust-version` specification in packages (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from check" -l unit-graph -d 'Output build graph in JSON (unstable)'
-complete -c cargo -n "__fish_seen_subcommand_from check" -l future-incompat-report -d 'Ouputs a future incompatibility report at the end of the build (unstable)'
+complete -c cargo -n "__fish_seen_subcommand_from check" -l future-incompat-report -d 'Output a future incompatibility report after build (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from check" -s h -l help -d 'Prints help information'
 complete -c cargo -n "__fish_seen_subcommand_from check" -s V -l version -d 'Prints version information'
 complete -c cargo -n "__fish_seen_subcommand_from check" -s v -l verbose -d 'Use verbose output (-vv very verbose/build.rs output)'
@@ -213,7 +233,7 @@ complete -c cargo -n "__fish_seen_subcommand_from check" -l locked -d 'Require C
 complete -c cargo -n "__fish_seen_subcommand_from check" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from clean" -s p -l package -d 'Package to clean artifacts for'
 complete -c cargo -n "__fish_seen_subcommand_from clean" -l manifest-path -d 'Path to Cargo.toml'
-complete -c cargo -n "__fish_seen_subcommand_from clean" -l target -d 'Target triple to clean output for'
+complete -c cargo -n "__fish_seen_subcommand_from clean" -l target -d 'Target triple to clean output for' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from clean" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from clean" -l profile -d 'Clean artifacts of the specified profile'
 complete -c cargo -n "__fish_seen_subcommand_from clean" -l color -d 'Coloring: auto, always, never'
@@ -242,8 +262,8 @@ complete -c cargo -n "__fish_seen_subcommand_from doc" -l exclude -d 'Exclude pa
 complete -c cargo -n "__fish_seen_subcommand_from doc" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l bin -d 'Document only the specified binary'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from doc" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from doc" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from doc" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from doc" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l message-format -d 'Error format'
@@ -252,7 +272,6 @@ complete -c cargo -n "__fish_seen_subcommand_from doc" -l config -d 'Override a 
 complete -c cargo -n "__fish_seen_subcommand_from doc" -s Z -d 'Unstable (nightly-only) flags to Cargo, see \'cargo -Z help\' for details'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -s q -l quiet -d 'No output printed to stdout'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l open -d 'Opens the docs in a browser after the operation'
-complete -c cargo -n "__fish_seen_subcommand_from doc" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l workspace -d 'Document all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l no-deps -d 'Don\'t build documentation for dependencies'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l document-private-items -d 'Document private items'
@@ -270,7 +289,7 @@ complete -c cargo -n "__fish_seen_subcommand_from doc" -l frozen -d 'Require Car
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from doc" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from fetch" -l manifest-path -d 'Path to Cargo.toml'
-complete -c cargo -n "__fish_seen_subcommand_from fetch" -l target -d 'Fetch dependencies for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from fetch" -l target -d 'Fetch dependencies for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from fetch" -l color -d 'Coloring: auto, always, never'
 complete -c cargo -n "__fish_seen_subcommand_from fetch" -l config -d 'Override a configuration value (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from fetch" -s Z -d 'Unstable (nightly-only) flags to Cargo, see \'cargo -Z help\' for details'
@@ -289,8 +308,8 @@ complete -c cargo -n "__fish_seen_subcommand_from fix" -l example -d 'Fix only t
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l test -d 'Fix only the specified test target'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l bench -d 'Fix only the specified bench target'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from fix" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from fix" -l target -d 'Fix for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from fix" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from fix" -l target -d 'Fix for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l message-format -d 'Error format'
@@ -298,7 +317,6 @@ complete -c cargo -n "__fish_seen_subcommand_from fix" -l color -d 'Coloring: au
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l config -d 'Override a configuration value (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -s Z -d 'Unstable (nightly-only) flags to Cargo, see \'cargo -Z help\' for details'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -s q -l quiet -d 'No output printed to stdout'
-complete -c cargo -n "__fish_seen_subcommand_from fix" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l workspace -d 'Fix all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l lib -d 'Fix only this package\'s library'
 complete -c cargo -n "__fish_seen_subcommand_from fix" -l bins -d 'Fix all binaries'
@@ -343,7 +361,7 @@ complete -c cargo -n "__fish_seen_subcommand_from git-checkout" -l frozen -d 'Re
 complete -c cargo -n "__fish_seen_subcommand_from git-checkout" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from git-checkout" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from init" -l registry -d 'Registry to use'
-complete -c cargo -n "__fish_seen_subcommand_from init" -l vcs -d 'Initialize a new repository for the given version control system (git, hg, pijul, or fossil) or do not initialize any version control at all (none), overriding a global configuration.' -r -f -a "git hg pijul fossil none"
+complete -c cargo -n "__fish_seen_subcommand_from init" -l vcs -d 'Initialize a new repository for the given version control system' -r -f -a "git hg pijul fossil none"
 complete -c cargo -n "__fish_seen_subcommand_from init" -l edition -d 'Edition to set for the crate generated' -r -f -a "2015 2018 2021"
 complete -c cargo -n "__fish_seen_subcommand_from init" -l name -d 'Set the resulting package name, defaults to the directory name'
 complete -c cargo -n "__fish_seen_subcommand_from init" -l color -d 'Coloring: auto, always, never'
@@ -365,11 +383,11 @@ complete -c cargo -n "__fish_seen_subcommand_from install" -l tag -d 'Tag to use
 complete -c cargo -n "__fish_seen_subcommand_from install" -l rev -d 'Specific commit to use when installing from git'
 complete -c cargo -n "__fish_seen_subcommand_from install" -l path -d 'Filesystem path to local crate to install'
 complete -c cargo -n "__fish_seen_subcommand_from install" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
-complete -c cargo -n "__fish_seen_subcommand_from install" -l features -d 'Space or comma separated list of features to activate'
+complete -c cargo -n "__fish_seen_subcommand_from install" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
 complete -c cargo -n "__fish_seen_subcommand_from install" -l profile -d 'Install artifacts with the specified profile'
 complete -c cargo -n "__fish_seen_subcommand_from install" -l bin -d 'Install only the specified binary'
 complete -c cargo -n "__fish_seen_subcommand_from install" -l example -d 'Install only the specified example'
-complete -c cargo -n "__fish_seen_subcommand_from install" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from install" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from install" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from install" -l root -d 'Directory to install packages into'
 complete -c cargo -n "__fish_seen_subcommand_from install" -l index -d 'Registry index to install from'
@@ -427,7 +445,7 @@ complete -c cargo -n "__fish_seen_subcommand_from logout" -s v -l verbose -d 'Us
 complete -c cargo -n "__fish_seen_subcommand_from logout" -l frozen -d 'Require Cargo.lock and cache are up to date'
 complete -c cargo -n "__fish_seen_subcommand_from logout" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from logout" -l offline -d 'Run without accessing the network'
-complete -c cargo -n "__fish_seen_subcommand_from metadata" -l features -d 'Space or comma separated list of features to activate'
+complete -c cargo -n "__fish_seen_subcommand_from metadata" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l filter-platform -d 'Only include resolve dependencies matching the given target-triple'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l format-version -d 'Format version' -r -f -a 1
@@ -437,7 +455,7 @@ complete -c cargo -n "__fish_seen_subcommand_from metadata" -s Z -d 'Unstable (n
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -s q -l quiet -d 'Do not print cargo log messages'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l all-features -d 'Activate all available features'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l no-default-features -d 'Do not activate the `default` feature'
-complete -c cargo -n "__fish_seen_subcommand_from metadata" -l no-deps -d 'Output information only about the workspace members and don\'t fetch dependencies'
+complete -c cargo -n "__fish_seen_subcommand_from metadata" -l no-deps -d 'Describe the workspace members without fetching dependencies'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -s h -l help -d 'Prints help information'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -s V -l version -d 'Prints version information'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -s v -l verbose -d 'Use verbose output (-vv very verbose/build.rs output)'
@@ -445,7 +463,7 @@ complete -c cargo -n "__fish_seen_subcommand_from metadata" -l frozen -d 'Requir
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from metadata" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from new" -l registry -d 'Registry to use'
-complete -c cargo -n "__fish_seen_subcommand_from new" -l vcs -d 'Initialize a new repository for the given version control system (git, hg, pijul, or fossil) or do not initialize any version control at all (none), overriding a global configuration.' -r -f -a "git hg pijul fossil none"
+complete -c cargo -n "__fish_seen_subcommand_from new" -l vcs -d 'Initialize a new repository for the given version control system' -r -f -a "git hg pijul fossil none"
 complete -c cargo -n "__fish_seen_subcommand_from new" -l edition -d 'Edition to set for the crate generated' -r -f -a "2015 2018 2021"
 complete -c cargo -n "__fish_seen_subcommand_from new" -l name -d 'Set the resulting package name, defaults to the directory name'
 complete -c cargo -n "__fish_seen_subcommand_from new" -l color -d 'Coloring: auto, always, never'
@@ -476,9 +494,9 @@ complete -c cargo -n "__fish_seen_subcommand_from owner" -s v -l verbose -d 'Use
 complete -c cargo -n "__fish_seen_subcommand_from owner" -l frozen -d 'Require Cargo.lock and cache are up to date'
 complete -c cargo -n "__fish_seen_subcommand_from owner" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from owner" -l offline -d 'Run without accessing the network'
-complete -c cargo -n "__fish_seen_subcommand_from package" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from package" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from package" -l target-dir -d 'Directory for all generated artifacts'
-complete -c cargo -n "__fish_seen_subcommand_from package" -l features -d 'Space or comma separated list of features to activate'
+complete -c cargo -n "__fish_seen_subcommand_from package" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
 complete -c cargo -n "__fish_seen_subcommand_from package" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from package" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
 complete -c cargo -n "__fish_seen_subcommand_from package" -l color -d 'Coloring: auto, always, never'
@@ -510,12 +528,11 @@ complete -c cargo -n "__fish_seen_subcommand_from pkgid" -l frozen -d 'Require C
 complete -c cargo -n "__fish_seen_subcommand_from pkgid" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from pkgid" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l index -d 'Registry index URL to upload the package to'
-complete -c cargo -n "__fish_seen_subcommand_from publish" -l host -d 'DEPRECATED, renamed to \'--index\''
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l token -d 'Token to use when uploading'
-complete -c cargo -n "__fish_seen_subcommand_from publish" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from publish" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l manifest-path -d 'Path to Cargo.toml'
-complete -c cargo -n "__fish_seen_subcommand_from publish" -l features -d 'Space or comma separated list of features to activate'
+complete -c cargo -n "__fish_seen_subcommand_from publish" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
 complete -c cargo -n "__fish_seen_subcommand_from publish" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l registry -d 'Registry to publish to'
 complete -c cargo -n "__fish_seen_subcommand_from publish" -l color -d 'Coloring: auto, always, never'
@@ -549,8 +566,8 @@ complete -c cargo -n "__fish_seen_subcommand_from run" -l example -d 'Name of th
 complete -c cargo -n "__fish_seen_subcommand_from run" -s p -l package -d 'Package with the target to run'
 complete -c cargo -n "__fish_seen_subcommand_from run" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
 complete -c cargo -n "__fish_seen_subcommand_from run" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from run" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from run" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from run" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from run" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from run" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from run" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from run" -l message-format -d 'Error format'
@@ -576,8 +593,8 @@ complete -c cargo -n "__fish_seen_subcommand_from rustc" -l example -d 'Build on
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l test -d 'Build only the specified test target'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l bench -d 'Build only the specified bench target'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from rustc" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from rustc" -l target -d 'Target triple which compiles will be for'
+complete -c cargo -n "__fish_seen_subcommand_from rustc" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from rustc" -l target -d 'Target triple which compiles will be for' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l print -d 'Output compiler information without compiling'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l manifest-path -d 'Path to Cargo.toml'
@@ -597,7 +614,7 @@ complete -c cargo -n "__fish_seen_subcommand_from rustc" -l all-features -d 'Act
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l no-default-features -d 'Do not activate the `default` feature'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l unit-graph -d 'Output build graph in JSON (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -l ignore-rust-version -d 'Ignore `rust-version` specification in packages (unstable)'
-complete -c cargo -n "__fish_seen_subcommand_from rustc" -l future-incompat-report -d 'Ouputs a future incompatibility report at the end of the build (unstable)'
+complete -c cargo -n "__fish_seen_subcommand_from rustc" -l future-incompat-report -d 'Outputs a future incompatibility report at the end of the build (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -s h -l help -d 'Prints help information'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -s V -l version -d 'Prints version information'
 complete -c cargo -n "__fish_seen_subcommand_from rustc" -s v -l verbose -d 'Use verbose output (-vv very verbose/build.rs output)'
@@ -611,8 +628,8 @@ complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l example -d 'Build 
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l test -d 'Build only the specified test target'
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l bench -d 'Build only the specified bench target'
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l message-format -d 'Error format'
@@ -639,7 +656,6 @@ complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l frozen -d 'Require
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from rustdoc" -l offline -d 'Run without accessing the network'
 complete -c cargo -n "__fish_seen_subcommand_from search" -l index -d 'Registry index URL to upload the package to'
-complete -c cargo -n "__fish_seen_subcommand_from search" -l host -d 'DEPRECATED, renamed to \'--index\''
 complete -c cargo -n "__fish_seen_subcommand_from search" -l limit -d 'Limit the number of results (default: 10, max: 100)'
 complete -c cargo -n "__fish_seen_subcommand_from search" -l registry -d 'Registry to use'
 complete -c cargo -n "__fish_seen_subcommand_from search" -l color -d 'Coloring: auto, always, never'
@@ -660,8 +676,8 @@ complete -c cargo -n "__fish_seen_subcommand_from test" -s p -l package -d 'Pack
 complete -c cargo -n "__fish_seen_subcommand_from test" -l exclude -d 'Exclude packages from the test'
 complete -c cargo -n "__fish_seen_subcommand_from test" -s j -l jobs -d 'Number of parallel jobs, defaults to # of CPUs'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l profile -d 'Build artifacts with the specified profile'
-complete -c cargo -n "__fish_seen_subcommand_from test" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from test" -l target -d 'Build for the target triple'
+complete -c cargo -n "__fish_seen_subcommand_from test" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from test" -l target -d 'Build for the target triple' -xa "(__fish_cargo_targets)"
 complete -c cargo -n "__fish_seen_subcommand_from test" -l target-dir -d 'Directory for all generated artifacts'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l message-format -d 'Error format'
@@ -678,14 +694,13 @@ complete -c cargo -n "__fish_seen_subcommand_from test" -l all-targets -d 'Test 
 complete -c cargo -n "__fish_seen_subcommand_from test" -l doc -d 'Test only this library\'s documentation'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l no-run -d 'Compile, but don\'t run tests'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l no-fail-fast -d 'Run all tests regardless of failure'
-complete -c cargo -n "__fish_seen_subcommand_from test" -l all -d 'Alias for --workspace (deprecated)'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l workspace -d 'Test all packages in the workspace'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l release -d 'Build artifacts in release mode, with optimizations'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l all-features -d 'Activate all available features'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l no-default-features -d 'Do not activate the `default` feature'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l ignore-rust-version -d 'Ignore `rust-version` specification in packages (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from test" -l unit-graph -d 'Output build graph in JSON (unstable)'
-complete -c cargo -n "__fish_seen_subcommand_from test" -l future-incompat-report -d 'Ouputs a future incompatibility report at the end of the build (unstable)'
+complete -c cargo -n "__fish_seen_subcommand_from test" -l future-incompat-report -d 'Outputs a future incompatibility report at the end of the build (unstable)'
 complete -c cargo -n "__fish_seen_subcommand_from test" -s h -l help -d 'Prints help information'
 complete -c cargo -n "__fish_seen_subcommand_from test" -s V -l version -d 'Prints version information'
 complete -c cargo -n "__fish_seen_subcommand_from test" -s v -l verbose -d 'Use verbose output (-vv very verbose/build.rs output)'
@@ -695,9 +710,9 @@ complete -c cargo -n "__fish_seen_subcommand_from test" -l offline -d 'Run witho
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from tree" -s p -l package -d 'Package to be used as the root of the tree'
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l exclude -d 'Exclude specific workspace members'
-complete -c cargo -n "__fish_seen_subcommand_from tree" -l features -d 'Space or comma separated list of features to activate'
-complete -c cargo -n "__fish_seen_subcommand_from tree" -l target -d 'Filter dependencies matching the given target-triple (default host platform). Pass `all` to include all targets.'
-complete -c cargo -n "__fish_seen_subcommand_from tree" -s e -l edges -d 'The kinds of dependencies to display (features, normal, build, dev, all, no-dev, no-build, no-normal)'
+complete -c cargo -n "__fish_seen_subcommand_from tree" -l features -d 'Space or comma separated list of features to activate' -xa "(__fish_cargo_features)"
+complete -c cargo -n "__fish_seen_subcommand_from tree" -l target -d 'Filter dependencies matching the given target-triple (or `all` for all targets)' -xa "(__fish_cargo_targets; echo all)"
+complete -c cargo -n "__fish_seen_subcommand_from tree" -s e -l edges -d 'The kinds of dependencies to display' -xa "features normal build dev all no-dev no-build no-normal"
 complete -c cargo -n "__fish_seen_subcommand_from tree" -s i -l invert -d 'Invert the tree direction and focus on the given package'
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l prefix -d 'Change the prefix (indentation) of how each entry is displayed' -r -f -a "depth indent none"
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l charset -d 'Character set to use in output: utf8, ascii' -r -f -a "utf8 ascii"
@@ -722,6 +737,7 @@ complete -c cargo -n "__fish_seen_subcommand_from tree" -s v -l verbose -d 'Use 
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l frozen -d 'Require Cargo.lock and cache are up to date'
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from tree" -l offline -d 'Run without accessing the network'
+complete -c cargo -n "__fish_seen_subcommand_from uninstall" -fa '(cargo install --list | string replace -rf "(\S+) (.*):" \'$1\t$2\')'
 complete -c cargo -n "__fish_seen_subcommand_from uninstall" -s p -l package -d 'Package to uninstall'
 complete -c cargo -n "__fish_seen_subcommand_from uninstall" -l bin -d 'Only uninstall the binary NAME'
 complete -c cargo -n "__fish_seen_subcommand_from uninstall" -l root -d 'Directory to uninstall packages from'
@@ -751,6 +767,7 @@ complete -c cargo -n "__fish_seen_subcommand_from update" -s v -l verbose -d 'Us
 complete -c cargo -n "__fish_seen_subcommand_from update" -l frozen -d 'Require Cargo.lock and cache are up to date'
 complete -c cargo -n "__fish_seen_subcommand_from update" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from update" -l offline -d 'Run without accessing the network'
+complete -c cargo -n "__fish_seen_subcommand_from update" -l ignore-rust-version -d 'Ignore MSRV when checking updates'
 complete -c cargo -n "__fish_seen_subcommand_from vendor" -l manifest-path -d 'Path to Cargo.toml'
 complete -c cargo -n "__fish_seen_subcommand_from vendor" -s s -l sync -d 'Additional `Cargo.toml` to sync and vendor'
 complete -c cargo -n "__fish_seen_subcommand_from vendor" -l color -d 'Coloring: auto, always, never'
@@ -815,3 +832,36 @@ complete -c cargo -n "__fish_seen_subcommand_from help" -s v -l verbose -d 'Use 
 complete -c cargo -n "__fish_seen_subcommand_from help" -l frozen -d 'Require Cargo.lock and cache are up to date'
 complete -c cargo -n "__fish_seen_subcommand_from help" -l locked -d 'Require Cargo.lock is up to date'
 complete -c cargo -n "__fish_seen_subcommand_from help" -l offline -d 'Run without accessing the network'
+
+# Add completions for popular cargo addon `cargo-asm` (that at least one fish dev uses)
+if command -q cargo-asm
+
+    # Flags (no parameters)
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l comments -d "Print asm comments"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l debug-info -d "Generate asm w/ debug info even if not required"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l debug-mode -d "Print output useful for debugging"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l directives -d "Print asm directives"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l help -s h -d "Print cargo-asm help info"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l json -d "Serialize asm AST to JSON"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l lib -d "Build only the lib target"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l no-color -d "Disable color output"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l no-default-features -d "Disable all cargo features on build"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l rust -d "Interleave asm output w/ rust code"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -l version -s V -d "Print cargo-asm version info"
+
+    # Options (require a parameter)
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -rl target -d "Build for target" -xa "(__fish_cargo_targets)"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -rl asm-style -d "ASM style (default: intel)" -xa "intel att"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -rl build-type -d "Build type (default: release)" -xa "debug release"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -rl features -d "Cargo features to enable" -xa "(__fish_cargo_features)"
+    complete -c cargo -n "__fish_seen_subcommand_from asm" -rl manifest-path -d "Run cargo-asm in a different directory"
+
+    # Dynamically generate completions for the function/impl path to translate to asm (the reason these completions exist)
+    # Warning: this will build the project and can take time! We make sure to only call it if it's not a switch so completions
+    # for --foo will always be fast.
+    if command -q timeout
+        complete -c cargo -n "__fish_seen_subcommand_from asm; and not __fish_is_switch" -xa "(timeout 1 cargo asm)"
+    else
+        complete -c cargo -n "__fish_seen_subcommand_from asm; and not __fish_is_switch" -xa "(cargo asm)"
+    end
+end

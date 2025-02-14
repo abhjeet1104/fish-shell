@@ -16,9 +16,9 @@ Synopsis
 Description
 -----------
 
-``if`` will execute the command ``CONDITION``. If the condition's exit status is 0, the commands ``COMMANDS_TRUE`` will execute.  If the exit status is not 0 and :ref:`else <cmd-else>` is given, ``COMMANDS_FALSE`` will be executed.
+``if`` will execute the command ``CONDITION``. If the condition's exit status is 0, the commands ``COMMANDS_TRUE`` will execute.  If the exit status is not 0 and :doc:`else <else>` is given, ``COMMANDS_FALSE`` will be executed.
 
-You can use :ref:`and <cmd-and>` or :ref:`or <cmd-or>` in the condition. See the second example below.
+You can use :doc:`and <and>` or :doc:`or <or>` in the condition. See the second example below.
 
 The exit status of the last foreground command to exit can always be accessed using the :ref:`$status <variables-status>` variable.
 
@@ -28,8 +28,6 @@ Example
 -------
 
 The following code will print ``foo.txt exists`` if the file foo.txt exists and is a regular file, otherwise it will print ``bar.txt exists`` if the file bar.txt exists and is a regular file, otherwise it will print ``foo.txt and bar.txt do not exist``.
-
-
 
 ::
 
@@ -44,7 +42,6 @@ The following code will print ``foo.txt exists`` if the file foo.txt exists and 
 
 The following code will print "foo.txt exists and is readable" if foo.txt is a regular file and readable
 
-
 ::
 
     if test -f foo.txt
@@ -52,3 +49,15 @@ The following code will print "foo.txt exists and is readable" if foo.txt is a r
        echo "foo.txt exists and is readable"
     end
 
+
+See also
+--------
+
+``if`` is only as useful as the command used as the condition.
+
+Fish ships a few:
+
+- :doc:`test` can compare numbers, strings and check paths
+- :doc:`string` can perform string operations including wildcard and regular expression matches
+- :doc:`path` can check paths for permissions, existence or type
+- :doc:`contains` can check if an element is in a list

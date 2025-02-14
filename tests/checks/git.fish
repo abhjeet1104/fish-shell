@@ -33,6 +33,19 @@ git init >/dev/null 2>&1
 # First set up a test alias - *before loading the completions*
 git config --local alias.re 'restore --staged'
 
+# Test custom command completions by adding a command:
+
+set -p PATH $PWD
+echo "echo foo" > git-frobnicate
+chmod +x git-frobnicate
+
+complete -c git-frobnicate -xa 'foo bar baz'
+
+complete -C'git frobnicate '
+#CHECK: bar
+#CHECK: baz
+#CHECK: foo
+
 complete -C'git ' | grep '^add'\t
 # (note: actual tab character in the check here)
 #CHECK: add	Add file contents to the staging area
@@ -41,9 +54,11 @@ touch foo
 
 complete -C'git add '
 #CHECK: foo	Untracked file
+#CHECK: git-frobnicate	Untracked file
 
 complete -C'git add :'
 #CHECK: :/:foo	Untracked file
+#CHECK: :/:git-frobnicate	Untracked file
 
 git config alias.s status
 complete 'git s --s'
@@ -61,11 +76,17 @@ fish_git_prompt
 echo
 #CHECK: (newbranch|✔)
 
+set -g __fish_git_prompt_show_informative_status 0
+fish_git_prompt
+echo # the git prompt doesn't print a newline
+#CHECK: (newbranch)
+set -g __fish_git_prompt_show_informative_status 1
+
 # Informative mode only shows untracked files if explicitly told.
 set -g __fish_git_prompt_showuntrackedfiles 1
 fish_git_prompt
 echo
-#CHECK: (newbranch|…1)
+#CHECK: (newbranch|…2)
 set -e __fish_git_prompt_show_informative_status
 set -e __fish_git_prompt_showuntrackedfiles
 
@@ -80,12 +101,22 @@ git add foo
 fish_git_prompt
 echo
 #CHECK: (newbranch +)
+set -g __fish_git_prompt_showdirtystate 0
+fish_git_prompt
+echo
+#CHECK: (newbranch)
+set -g __fish_git_prompt_showdirtystate 1
 
 set -g __fish_git_prompt_showuntrackedfiles 1
 touch bananan
 fish_git_prompt
 echo
 #CHECK: (newbranch +%)
+set -g __fish_git_prompt_showuntrackedfiles 0
+fish_git_prompt
+echo
+#CHECK: (newbranch +)
+set -g __fish_git_prompt_showuntrackedfiles 1
 
 set -g __fish_git_prompt_status_order untrackedfiles stagedstate
 fish_git_prompt
@@ -115,6 +146,34 @@ fish_git_prompt
 echo
 #CHECK: (newbranch +)
 
+set -e __fish_git_prompt_showdirtystate
+
+# Test displaying only stash count
+set -g __fish_git_prompt_show_informative_status 1
+set -g __fish_git_prompt_showstashstate 1
+set -g __fish_git_prompt_status_order stashstate
+set -g ___fish_git_prompt_char_stashstate ''
+set -g ___fish_git_prompt_char_cleanstate ''
+
+set -l identity -c user.email=banana@example.com -c user.name=banana
+git $identity commit -m Init >/dev/null
+echo 'changed' > foo
+# (some git versions don't allow stash without giving an email)
+git $identity stash >/dev/null
+fish_git_prompt
+echo
+#CHECK: (newbranch|1)
+
+git $identity stash pop >/dev/null
+fish_git_prompt
+echo
+#CHECK: (newbranch)
+
+set -e __fish_git_prompt_show_informative_status
+set -e __fish_git_prompt_showstashstate
+set -e __fish_git_prompt_status_order
+set -e ___fish_git_prompt_char_stashstate
+set -e ___fish_git_prompt_char_cleanstate
 
 
 # Turn on everything and verify we correctly ignore sus config files.
@@ -139,4 +198,3 @@ end
 
 $fish -c 'complete -C "git -C ./.gi"'
 # CHECK: ./.git/	Directory
-

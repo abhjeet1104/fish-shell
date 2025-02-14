@@ -21,19 +21,22 @@ if "CI" in os.environ:
     import sys
 
     print("SKIPPING cancel_event.py")
-    sys.exit(0)
+    sys.exit(127)
 
 # Verify that cancel-commandline does what we expect - see #7384.
 send("not executed")
 sleep(timeout)
 os.kill(sp.spawn.pid, signal.SIGINT)
-sp.expect_str("not executed^C")
-expect_prompt(increment=False)
+sendline("echo marker")
+sp.expect_str("marker")
+expect_prompt()
 
 sendline("function cancelhandler --on-event fish_cancel ; echo yay cancelled ; end")
 expect_prompt()
 send("still not executed")
 sleep(timeout)
 os.kill(sp.spawn.pid, signal.SIGINT)
-expect_str("still not executed^C")
-expect_prompt("yay cancelled", increment=False)
+expect_str("yay cancelled")
+sendline("echo marker")
+sp.expect_str("marker")
+expect_prompt()

@@ -17,3 +17,11 @@ or echo Invalid $status
 commandline --input 'echo $$' --is-valid
 or echo Invalid $status
 # CHECK: Invalid 1
+
+commandline --help &>/dev/null
+echo Help $status
+# CHECK: Help 0
+
+commandline -pC 0 --input "test | test"
+echo $status
+# CHECK: 0

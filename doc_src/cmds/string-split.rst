@@ -24,12 +24,13 @@ Description
 
 Use **-f** or **--fields** to print out specific fields. FIELDS is a comma-separated string of field numbers and/or spans. Each field is one-indexed, and will be printed on separate lines. If a given field does not exist, then the command exits with status 1 and does not print anything, unless **--allow-empty** is used.
 
-See also the **--delimiter** option of the :ref:`read <cmd-read>` command.
+See also the **--delimiter** option of the :doc:`read <read>` command.
 
 ``string split0`` splits each *STRING* on the zero byte (NUL). Options are the same as ``string split`` except that no separator is given.
 
 ``split0`` has the important property that its output is not further split when used in a command substitution, allowing for the command substitution to produce elements containing newlines. This is most useful when used with Unix tools that produce zero bytes, such as ``find -print0`` or ``sort -z``. See split0 examples below.
 
+Be aware that commandline arguments cannot include NULs, so you likely want to pass to ``string split0`` via a pipe, not a command substitution.
 
 .. END DESCRIPTION
 
@@ -65,6 +66,7 @@ NUL Delimited Examples
 ::
 
     >_ # Count files in a directory, without being confused by newlines.
+    >_ # Note: Don't use `string split0 (find . -print0)`, because arguments cannot include NUL.
     >_ count (find . -print0 | string split0)
     42
 

@@ -13,7 +13,14 @@ Synopsis
 Description
 -----------
 
+.. only:: builder_man
+
+          NOTE: This page documents the fish builtin ``command``.
+          To see the documentation on any non-fish versions, use ``command man command``.
+
 **command** forces the shell to execute the program *COMMANDNAME* and ignore any functions or builtins with the same name.
+
+In ``command foo``, ``command`` is a keyword.
 
 The following options are available:
 
@@ -21,17 +28,15 @@ The following options are available:
     Prints all *COMMAND* found in :envvar:`PATH`, in the order found.
 
 **-q** or **--query**
-    Silence output and print nothing, setting only exit status.
-    Implies **--search**.
+    Return 0 if any of the given commands could be found, 127 otherwise.
+    Don't print anything.
     For compatibility, this is also **--quiet** (deprecated).
 
-**-v** (or **-s** or **--search**)
+**-s** or **--search** (or **-v**)
     Prints the external command that would be executed, or prints nothing if no file with the specified name could be found in :envvar:`PATH`.
 
 **-h** or **--help**
     Displays help about using this command.
-
-With the **-v** option, ``command`` treats every argument as a separate command to look up and sets the exit status to 0 if any of the specified commands were found, or 127 if no commands could be found. **--quiet** used with **-v** prevents commands being printed, like ``type -q``.
 
 Examples
 --------
@@ -39,3 +44,4 @@ Examples
 | ``command ls`` executes the ``ls`` program, even if an ``ls`` function also exists.
 | ``command -s ls`` prints the path to the ``ls`` program.
 | ``command -q git; and command git log`` runs ``git log`` only if ``git`` exists.
+| ``command -sq git`` and ``command -q git`` and ``command -vq git`` return true (0) if a git command could be found and don't print anything.

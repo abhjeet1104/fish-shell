@@ -15,21 +15,11 @@ function edit_command_buffer --description 'Edit the command buffer in an extern
         or return 1
     end
 
-    # Edit the command line with the users preferred editor or vim or emacs.
-    set -l editor
-    if set -q VISUAL
-        echo $VISUAL | read -at editor
-    else if set -q EDITOR
-        echo $EDITOR | read -at editor
-    else
-        echo
-        echo (_ 'External editor requested but $VISUAL or $EDITOR not set.')
-        echo (_ 'Please set VISUAL or EDITOR to your preferred editor.')
-        commandline -f repaint
-        return 1
-    end
+    set -l editor (__fish_anyeditor)
+    or return 1
 
-    commandline -b >$f
+    set -l indented_lines (commandline -b | __fish_indent --only-indent)
+    string join -- \n $indented_lines >$f
     set -l offset (commandline --cursor)
     # compute cursor line/column
     set -l lines (commandline)\n
@@ -39,43 +29,91 @@ function edit_command_buffer --description 'Edit the command buffer in an extern
         set line (math $line + 1)
         set -e lines[1]
     end
-    set col (math $offset + 1)
+    set -l indent 1 + (string length -- $indented_lines[$line]) - (string length -- $lines[1])
+    set -l col (math $offset + 1 + $indent)
 
-    set -l basename (string match -r '[^/]*$' -- $editor[1])
-    switch $basename
-        case vi vim nvim
-            set -a editor +$line +"norm! $col|" $f
-        case emacs emacsclient gedit kak
-            set -a editor +$line:$col $f
-        case nano
-            set -a editor +$line,$col $f
-        case joe ee
-            set -a editor +$line $f
-        case code code-oss
-            set -a editor --goto $f:$line:$col --wait
-        case subl
-            set -a editor $f:$line:$col --wait
-        case micro
-            set -a editor $f +$line:$col
-        case '*'
-            set -a editor $f
+    set -l editor_basename (string match -r '[^/]+$' -- $editor[1])
+    set -l wrapped_commands
+    for wrap_target in (complete -- $editor_basename | string replace -rf '^complete [^/]+ --wraps (.+)$' '$1')
+        set -l tmp
+        string unescape -- $wrap_target | read -at tmp
+        set -a wrapped_commands $tmp[1]
+    end
+    set -l found false
+    set -l cursor_from_editor
+    for editor_command in $editor_basename $wrapped_commands
+        switch $editor_command
+            case vi vim nvim
+                if test $editor_command = vi && not set -l vi_version "$(vi --version 2>/dev/null)"
+                    if printf %s $vi_version | grep -q BusyBox
+                        break
+                    end
+                    set -a editor +{$line} $f
+                    set found true
+                    break
+                end
+                set cursor_from_editor (mktemp)
+                set -a editor +$line "+norm! $col|" $f \
+                    '+au VimLeave * ++once call writefile([printf("%s %s %s", shellescape(bufname()), line("."), col("."))], "'$cursor_from_editor'")'
+            case emacs emacsclient gedit
+                set -a editor +$line:$col $f
+            case kak
+                set cursor_from_editor (mktemp)
+                set -a editor +$line:$col $f -e "
+                        hook -always -once global ClientClose %val{client} %{
+                            echo -to-file $cursor_from_editor -quoting shell \
+                                %val{buffile} %val{cursor_line} %val{cursor_column}
+                        }
+                    "
+            case nano
+                set -a editor +$line,$col $f
+            case joe ee
+                set -a editor +$line $f
+            case code code-oss
+                set -a editor --goto $f:$line:$col --wait
+            case subl
+                set -a editor $f:$line:$col --wait
+            case micro
+                set -a editor $f +$line:$col
+            case '*'
+                continue
+        end
+        set found true
+        break
+    end
+    if not $found
+        set -a editor $f
     end
 
-    __fish_disable_bracketed_paste
     $editor
-    set -l editor_status $status
-    __fish_enable_bracketed_paste
+
+    set -l raw_lines (command cat $f)
+    set -l unindented_lines (string join -- \n $raw_lines | __fish_indent --only-unindent)
 
     # Here we're checking the exit status of the editor.
-    if test $editor_status -eq 0 -a -s $f
+    if test $status -eq 0 -a -s $f
         # Set the command to the output of the edited command and move the cursor to the
         # end of the edited command.
-        commandline -r -- (command cat $f)
+        commandline -r -- $unindented_lines
         commandline -C 999999
     else
         echo
         echo (_ "Ignoring the output of your editor since its exit status was non-zero")
         echo (_ "or the file was empty")
+    end
+    if set -q cursor_from_editor[1]
+        eval set -l pos "$(cat $cursor_from_editor)"
+        if set -q pos[1] && test $pos[1] = $f
+            set -l line $pos[2]
+            set -l indent (math (string length -- "$raw_lines[$line]") - (string length -- "$unindented_lines[$line]"))
+            set -l column (math $pos[3] - $indent)
+            if not commandline --line $line 2>/dev/null
+                commandline -f end-of-buffer
+            else
+                commandline --column $column 2>/dev/null || commandline -f end-of-line
+            end
+        end
+        command rm $cursor_from_editor
     end
     command rm $f
     # We've probably opened something that messed with the screen.

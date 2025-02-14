@@ -17,7 +17,7 @@ alias foo '"a b" c d e'
 # framework and we can't predict the definition.
 alias | grep -Ev '^alias (fish_indent|fish_key_reader) '
 # CHECK: alias a-2 'echo "hello there"'
-# CHECK: alias a-3 echo\\\ hello\\\\\\\ there
+# CHECK: alias a-3 'echo hello\\\\ there'
 # CHECK: alias foo '"a b" c d e'
 # CHECK: alias my_alias 'foo; and echo foo ran'
 
@@ -28,11 +28,11 @@ alias l. "ls -d .*"
 alias d "'/mnt/c/Program Files (x86)/devenv.exe' /Edit"
 functions d
 # CHECK: # Defined via `source`
-# CHECK: function d --wraps=\'/mnt/c/Program\ Files\ \(x86\)/devenv.exe\'\ /Edit --description alias\ d\ \'/mnt/c/Program\ Files\ \(x86\)/devenv.exe\'\ /Edit
+# CHECK: function d --wraps="'/mnt/c/Program Files (x86)/devenv.exe' /Edit" --description "alias d '/mnt/c/Program Files (x86)/devenv.exe' /Edit"
 # CHECK: '/mnt/c/Program Files (x86)/devenv.exe' /Edit $argv
 # CHECK: end
 
-# Use "command" to prevent recusion, and don't add --wraps to avoid accidental recursion in completion.
+# Use "command" to prevent recursion, and don't add --wraps to avoid accidental recursion in completion.
 alias e 'e --option=value'
 functions e
 # CHECK: # Defined via `source`

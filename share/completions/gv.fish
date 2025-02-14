@@ -1,14 +1,11 @@
-complete -c gv -k -xa "(__fish_complete_suffix .ps)"
-complete -c gv -k -xa "(__fish_complete_suffix .ps.gz)"
-complete -c gv -k -xa "(__fish_complete_suffix .eps)"
-complete -c gv -k -xa "(__fish_complete_suffix .pdf)"
+complete -c gv -k -xa "(__fish_complete_suffix .ps .ps.gz .eps .pdf)"
 complete -c gv -l monochrome -d 'Display document using only black and white'
 complete -c gv -l grayscale -d 'Display document without colors'
 complete -c gv -l color -d 'Display document as usual'
 complete -c gv -l safer -d 'Start ghostscript in safe mode'
 complete -c gv -l nosafer -d 'Do not start ghostscript in safe mode'
-complete -c gv -l safedir -d 'Start ghostscript from a safe diretory'
-complete -c gv -l nosafedir -d 'Do not start ghostscript from a safe diretory'
+complete -c gv -l safedir -d 'Start ghostscript from a safe directory'
+complete -c gv -l nosafedir -d 'Do not start ghostscript from a safe directory'
 complete -c gv -l quiet -d 'Start ghostscript with the -dQUIET option'
 complete -c gv -l noquiet -d 'Do not start ghostscript with the -dQUIET option'
 complete -c gv -l infoSilent -d 'Do not show any messages in the info popup window'

@@ -45,7 +45,6 @@ complete -c $progname -n $noopt -s u -l update -d "(AUR) Update foreign packages
 complete -c $progname -n "$noopt; and not __fish_contains_opt -s d download" -s d -l download -d "(AUR) Clone the packages' build files"
 complete -c $progname -n "$noopt; and __fish_contains_opt -s d download" -s d -l download -d "Download dependencies recursively"
 
-
 # General options
 # Only offer these once a command has been given so they get prominent display
 complete -c $progname -n $noopt -s b -l dbpath -d 'Alternative database location' -xa '(__fish_complete_directories)'
@@ -159,4 +158,4 @@ complete -c $progname -n "$files" -l machinereadable -d 'Show in machine readabl
 # Upgrade options
 # Theoretically, pacman reads packages in all formats that libarchive supports
 # In practice, it's going to be tar.xz or tar.gz or tar.zst
-complete -c $progname -n "$upgrade" -k -xa '(__fish_complete_suffix pkg.tar.zst; __fish_complete_suffix pkg.tar.xz; __fish_complete_suffix pkg.tar.gz)' -d 'Package file'
+complete -c $progname -n "$upgrade" -k -xa '(__fish_complete_suffix pkg.tar.zst pkg.tar.xz pkg.tar.gz)' -d 'Package file'

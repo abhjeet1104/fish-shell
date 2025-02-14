@@ -14,7 +14,6 @@ function __fish_default_command_not_found_handler
     printf (_ "fish: Unknown command: %s\n") (string escape -- $argv[1]) >&2
 end
 
-
 if not status --is-interactive
     # Hook up the default as the command_not_found handler
     # if we are not interactive to avoid custom handlers.
@@ -50,24 +49,24 @@ else
     set xdg_data_dirs $__fish_data_dir
 end
 
-set -l vendor_completionsdirs
-set -l vendor_functionsdirs
-set -l vendor_confdirs
+set -g __fish_vendor_completionsdirs
+set -g __fish_vendor_functionsdirs
+set -g __fish_vendor_confdirs
 # Don't load vendor directories when running unit tests
 if not set -q FISH_UNIT_TESTS_RUNNING
-    set vendor_completionsdirs $__fish_user_data_dir/vendor_completions.d $xdg_data_dirs/vendor_completions.d
-    set vendor_functionsdirs $__fish_user_data_dir/vendor_functions.d $xdg_data_dirs/vendor_functions.d
-    set vendor_confdirs $__fish_user_data_dir/vendor_conf.d $xdg_data_dirs/vendor_conf.d
+    set __fish_vendor_completionsdirs $__fish_user_data_dir/vendor_completions.d $xdg_data_dirs/vendor_completions.d
+    set __fish_vendor_functionsdirs $__fish_user_data_dir/vendor_functions.d $xdg_data_dirs/vendor_functions.d
+    set __fish_vendor_confdirs $__fish_user_data_dir/vendor_conf.d $xdg_data_dirs/vendor_conf.d
 
     # Ensure that extra directories are always included.
-    if not contains -- $__extra_completionsdir $vendor_completionsdirs
-        set -a vendor_completionsdirs $__extra_completionsdir
+    if not contains -- $__extra_completionsdir $__fish_vendor_completionsdirs
+        set -a __fish_vendor_completionsdirs $__extra_completionsdir
     end
-    if not contains -- $__extra_functionsdir $vendor_functionsdirs
-        set -a vendor_functionsdirs $__extra_functionsdir
+    if not contains -- $__extra_functionsdir $__fish_vendor_functionsdirs
+        set -a __fish_vendor_functionsdirs $__extra_functionsdir
     end
-    if not contains -- $__extra_confdir $vendor_confdirs
-        set -a vendor_confdirs $__extra_confdir
+    if not contains -- $__extra_confdir $__fish_vendor_confdirs
+        set -a __fish_vendor_confdirs $__extra_confdir
     end
 end
 
@@ -75,13 +74,13 @@ end
 # default functions/completions are included in the respective path.
 
 if not set -q fish_function_path
-    set fish_function_path $__fish_config_dir/functions $__fish_sysconf_dir/functions $vendor_functionsdirs $__fish_data_dir/functions
+    set fish_function_path $__fish_config_dir/functions $__fish_sysconf_dir/functions $__fish_vendor_functionsdirs $__fish_data_dir/functions
 else if not contains -- $__fish_data_dir/functions $fish_function_path
     set -a fish_function_path $__fish_data_dir/functions
 end
 
 if not set -q fish_complete_path
-    set fish_complete_path $__fish_config_dir/completions $__fish_sysconf_dir/completions $vendor_completionsdirs $__fish_data_dir/completions $__fish_user_data_dir/generated_completions
+    set fish_complete_path $__fish_config_dir/completions $__fish_sysconf_dir/completions $__fish_vendor_completionsdirs $__fish_data_dir/completions $__fish_cache_dir/generated_completions
 else if not contains -- $__fish_data_dir/completions $fish_complete_path
     set -a fish_complete_path $__fish_data_dir/completions
 end
@@ -141,14 +140,17 @@ end
 # This handler removes itself after it is first called.
 #
 function __fish_on_interactive --on-event fish_prompt --on-event fish_read
-    __fish_config_interactive
+    # We erase this *first* so it can't be called again,
+    # e.g. if fish_greeting calls "read".
     functions -e __fish_on_interactive
+    __fish_config_interactive
 end
 
 # Set the locale if it isn't explicitly set. Allowing the lack of locale env vars to imply the
 # C/POSIX locale causes too many problems. Do this before reading the snippets because they might be
 # in UTF-8 (with non-ASCII characters).
-__fish_set_locale
+not set -q LANG # (fast path - no need to load the file if we have $LANG)
+and __fish_set_locale
 
 #
 # Some things should only be done for login terminals
@@ -164,13 +166,11 @@ if status --is-login
 
             # Populate path according to config files
             for path_file in $argv[2] $argv[3]/*
-                if test -f $path_file
-                    while read -l entry
-                        if not contains -- $entry $result
-                            test -n "$entry"
-                            and set -a result $entry
-                        end
-                    end <$path_file
+                for entry in (string split : <? $path_file)
+                    if not contains -- $entry $result
+                        test -n "$entry"
+                        and set -a result $entry
+                    end
                 end
             end
 
@@ -221,21 +221,28 @@ end
 
 for jobbltn in bg wait disown
     function $jobbltn -V jobbltn
-        builtin $jobbltn (__fish_expand_pid_args $argv)
+        set -l args (__fish_expand_pid_args $argv)
+        and builtin $jobbltn $args
     end
 end
 function fg
-    builtin fg (__fish_expand_pid_args $argv)[-1]
+    set -l args (__fish_expand_pid_args $argv)
+    and builtin fg $args[-1]
 end
 
-function kill
-    command kill (__fish_expand_pid_args $argv)
+if command -q kill
+    # Only define this if something to wrap exists
+    # this allows a nice "command not found" error to be triggered.
+    function kill
+        set -l args (__fish_expand_pid_args $argv)
+        and command kill $args
+    end
 end
 
 # As last part of initialization, source the conf directories.
 # Implement precedence (User > Admin > Extra (e.g. vendors) > Fish) by basically doing "basename".
 set -l sourcelist
-for file in $__fish_config_dir/conf.d/*.fish $__fish_sysconf_dir/conf.d/*.fish $vendor_confdirs/*.fish
+for file in $__fish_config_dir/conf.d/*.fish $__fish_sysconf_dir/conf.d/*.fish $__fish_vendor_confdirs/*.fish
     set -l basename (string replace -r '^.*/' '' -- $file)
     contains -- $basename $sourcelist
     and continue

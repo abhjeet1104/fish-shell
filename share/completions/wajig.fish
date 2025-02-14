@@ -1,5 +1,5 @@
 function __fish_wajig_no_subcommand -d 'Test if wajig has yet to be given the subcommand'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i addcdrom auto-alts auto-clean auto-download auto-install \
                 available bug build build-depend changelog clean commands daily-upgrade \
                 dependents describe describe-new detail detail-new dist-upgrade docs download \
@@ -23,7 +23,7 @@ function __fish_wajig_no_subcommand -d 'Test if wajig has yet to be given the su
 end
 
 function __fish_wajig_use_package -d 'Test if wajig command should have packages as potential completion'
-    for i in (commandline -opc)
+    for i in (commandline -xpc)
         if contains -- $i contains bug build build-depend changelog dependents describe \
                 detail hold install installr installrs installs list list-files news \
                 package purge purge-depend readme recursive recommended reconfigure \
@@ -37,7 +37,7 @@ end
 
 complete -c wajig -n __fish_wajig_use_package -a '(__fish_print_apt_packages)' -d Packages
 complete -c wajig -s q -l quiet -d 'Do system commands everything quietly.'
-complete -c wajig -s n -l noauth -d 'Allow packages from unathenticated archives.'
+complete -c wajig -s n -l noauth -d 'Allow packages from unauthenticated archives.'
 complete -c wajig -s s -l simulate -d 'Trace but don\'t execute the sequence of underlying commands.'
 complete -c wajig -s t -l teaching -d 'Trace the sequence of commands performed.'
 complete -c wajig -s y -l yes -d 'Assume yes for any questions asked.'

@@ -6,6 +6,9 @@ endif (NOT APPLE)
 # The source tree containing certain macOS resources.
 set(OSX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/osx)
 
+# 10.9 is the minimum supported version.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
+
 set(RESOURCE_FILES
     ${OSX_DIR}/launch_fish.scpt
     ${OSX_DIR}/fish_term_icon.icns
@@ -61,18 +64,5 @@ add_custom_command(TARGET fish_macapp POST_BUILD
 # The entitlements file.
 set(MACAPP_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/osx/MacApp.entitlements")
 
-# Target to sign the macapp.
-# Note that a POST_BUILD step happens before resources are copied,
-# and therefore would be too early.
-add_custom_target(signed_fish_macapp
-    DEPENDS fish_macapp "${MACAPP_ENTITLEMENTS}"
-    COMMAND codesign --force --deep
-            --options runtime
-            --entitlements "${MACAPP_ENTITLEMENTS}"
-            --sign "${MAC_CODESIGN_ID}"
-            $<TARGET_BUNDLE_DIR:fish_macapp>
-    VERBATIM
-)
-
 # Group our targets in a folder.
-set_property(TARGET fish_macapp signed_fish_macapp PROPERTY FOLDER macapp)
+set_property(TARGET fish_macapp PROPERTY FOLDER macapp)

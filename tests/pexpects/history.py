@@ -11,7 +11,7 @@
 
 # The history function might pipe output through the user's pager. We don't
 # want something like `less` to complicate matters so force the use of `cat`.
-from pexpect_helper import SpawnedProc
+from pexpect_helper import SpawnedProc, TO_END, TO_END_SUFFIX
 import os
 
 os.environ["PAGER"] = "cat"
@@ -65,7 +65,7 @@ expect_prompt("echo start2.*\r\necho start1")
 # Verify searching with a request for timestamps includes the timestamps.
 sendline("history search --show-time='# %F %T%n' --prefix 'echo start'")
 expect_prompt(
-    "# \d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\r\necho start2; .*\r\n# \d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\r\necho start1;"
+    "# \\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\r\necho start2; .*\r\n# \\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\r\necho start1;"
 )
 
 # ==========
@@ -98,8 +98,8 @@ expect_prompt("echo start1; builtin history; echo end1\r\n")
 # ==========
 # Delete a single command we recently ran.
 sendline("history delete -e -C 'echo hello'")
-expect_prompt("history delete -e -C 'echo hello'\r\n")
-sendline("echo count hello (history search -e -C 'echo hello' | wc -l | string trim)")
+expect_prompt()
+sendline("echo count hello (history search -e -C 'echo hello' | count)")
 expect_prompt("count hello 0\r\n")
 
 # ==========
@@ -107,30 +107,29 @@ expect_prompt("count hello 0\r\n")
 # delete the first entry matched by the prefix search (the most recent command
 # sent above that matches).
 sendline("history delete -p 'echo hello'")
-expect_re("history delete -p 'echo hello'\r\n")
-expect_re("\[1\] echo hello AGAIN\r\n")
-expect_re("\[2\] echo hello again\r\n\r\n")
+expect_re("history delete -p 'echo hello'" + TO_END_SUFFIX)
+expect_re("\\[1\\] echo hello AGAIN" + TO_END_SUFFIX)
+expect_re("\\[2\\] echo hello again" + TO_END_SUFFIX)
+expect_re("Enter nothing to cancel the delete, or\r\n")
 expect_re(
-    'Enter nothing to cancel.*\r\nEnter "all" to delete all the matching entries\.\r\n'
+    "Enter one or more of the entry IDs or ranges like '5..12', separated by a space.\r\n"
 )
-expect_re("Delete which entries\? >")
+expect_re("For example '7 10..15 35 788..812'.\r\n")
+expect_re("Enter 'all' to delete all the matching entries.\r\n")
+expect_re("Delete which entries\\? ")
 sendline("1")
 expect_prompt('Deleting history entry 1: "echo hello AGAIN"\r\n')
 
 # Verify that the deleted history entry is gone and the other one that matched
 # the prefix search above is still there.
-sendline(
-    "echo count AGAIN (history search -e -C 'echo hello AGAIN' | wc -l | string trim)"
-)
+sendline("echo count AGAIN (history search -e -C 'echo hello AGAIN' | count)")
 expect_prompt("count AGAIN 0\r\n")
 
-sendline(
-    "echo count again (history search -e -C 'echo hello again' | wc -l | string trim)"
-)
+sendline("echo count again (history search -e -C 'echo hello again' | count)")
 expect_prompt("count again 1\r\n")
 
 # Verify that the $history var has the expected content.
-sendline("echo history2=$history\[2\]")
+sendline("echo history2=$history[2]")
 expect_prompt("history2=echo count AGAIN .*\r\n")
 
 # Verify that history search is case-insensitive by default
@@ -177,4 +176,30 @@ expect_prompt()
 sendline("history clear-session")
 expect_prompt()
 sendline("history search --exact 'echo after' | cat")
-expect_prompt("\r\n")
+expect_prompt()
+
+# Check history filtering
+# We store anything that starts with "echo ephemeral".
+sendline(
+    "function fish_should_add_to_history; string match -q 'echo ephemeral*' -- $argv; and return 2; return 0; end"
+)
+expect_prompt("")
+# Check that matching the line works
+# (fish_should_add_to_history is itself stored in history so we match "ephemeral!" to avoid it)
+sendline("echo ephemeral! line")
+expect_prompt("ephemeral! line")
+sendline("echo nonephemeral! line")
+expect_prompt("nonephemeral! line")
+sendline("true")
+expect_prompt()
+sendline("echo a; history search '*ephemeral!*' | cat; echo b")
+expect_prompt(r"a\r\n.*echo nonephemeral! line\r\nb\r\n")
+
+# If fish_should_add_to_history exists, it will completely take over,
+# so even lines with spaces are stored
+sendline(" echo spaced")
+expect_prompt("spaced")
+sendline("true")
+expect_prompt()
+sendline("echo a; history search '*spaced*' | cat; echo b")
+expect_prompt("a\r\n.* echo spaced\r\nb\r\n")

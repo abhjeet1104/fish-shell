@@ -1,13 +1,16 @@
-`fish <https://fishshell.com/>`__ - the friendly interactive shell |Build Status|
-=================================================================================
+.. |Cirrus CI| image:: https://api.cirrus-ci.com/github/fish-shell/fish-shell.svg?branch=master
+      :target: https://cirrus-ci.com/github/fish-shell/fish-shell
+      :alt: Cirrus CI Build Status
+
+`fish <https://fishshell.com/>`__ - the friendly interactive shell |Build Status| |Cirrus CI|
+=============================================================================================
 
 fish is a smart and user-friendly command line shell for macOS, Linux,
 and the rest of the family. fish includes features like syntax
 highlighting, autosuggest-as-you-type, and fancy tab completions that
 just work, with no configuration required.
 
-For more on fish’s design philosophy, see the `design
-document <https://fishshell.com/docs/current/design.html>`__.
+For downloads, screenshots and more, go to https://fishshell.com/.
 
 Quick Start
 -----------
@@ -59,12 +62,11 @@ Instructions for other distributions may be found at
 Windows
 ~~~~~~~
 
--  On Windows 10, fish can be installed under the WSL Windows Subsystem
+-  On Windows 10/11, fish can be installed under the WSL Windows Subsystem
    for Linux with the instructions for the appropriate distribution
    listed above under “Packages for Linux”, or from source with the
    instructions below.
--  Fish can also be installed on all versions of Windows using
-   `Cygwin <https://cygwin.com/>`__ (from the **Shells** category).
+-  fish (4.0 on and onwards) cannot be installed in Cygwin, due to a lack of Rust support.
 
 Building from source
 ~~~~~~~~~~~~~~~~~~~~
@@ -85,10 +87,11 @@ Dependencies
 
 Running fish requires:
 
--  curses or ncurses (preinstalled on most \*nix systems)
+-  A terminfo database, typically from curses or ncurses (preinstalled on most \*nix systems) - this needs to be the directory tree format, not the "hashed" database.
+   If this is unavailable, fish uses an included xterm-256color definition.
 -  some common \*nix system utilities (currently ``mktemp``), in
    addition to the basic POSIX utilities (``cat``, ``cut``, ``dirname``,
-   ``ls``, ``mkdir``, ``mkfifo``, ``rm``, ``sort``, ``tee``, ``tr``,
+   ``file``, ``ls``, ``mkdir``, ``mkfifo``, ``rm``, ``sort``, ``tee``, ``tr``,
    ``uname`` and ``sed`` at least, but the full coreutils plus ``find`` and
    ``awk`` is preferred)
 -  The gettext library, if compiled with
@@ -109,32 +112,6 @@ The following optional features also have specific requirements:
 -  ``colorls`` is used, if installed, to add color when running ``ls`` on platforms
    that do not have color support (such as OpenBSD)
 
-Switching to fish
-~~~~~~~~~~~~~~~~~
-
-If you wish to use fish as your default shell, use the following
-command:
-
-::
-
-   chsh -s /usr/local/bin/fish
-
-``chsh`` will prompt you for your password and change your default
-shell. (Substitute ``/usr/local/bin/fish`` with whatever path fish was
-installed to, if it differs.) Log out, then log in again for the changes
-to take effect.
-
-Use the following command if fish isn’t already added to ``/etc/shells``
-to permit fish to be your login shell:
-
-::
-
-   echo /usr/local/bin/fish | sudo tee -a /etc/shells
-
-To switch your default shell back, you can run ``chsh -s /bin/bash``
-(substituting ``/bin/bash`` with ``/bin/tcsh`` or ``/bin/zsh`` as
-appropriate).
-
 Building
 --------
 
@@ -145,19 +122,25 @@ Dependencies
 
 Compiling fish requires:
 
--  a C++11 compiler (g++ 4.8 or later, or clang 3.3 or later)
--  CMake (version 3.5 or later)
--  a curses implementation such as ncurses (headers and libraries)
+-  Rust (version 1.70 or later)
+-  CMake (version 3.15 or later)
+-  a C compiler (for system feature detection and the test helper binary)
 -  PCRE2 (headers and libraries) - optional, this will be downloaded if missing
 -  gettext (headers and libraries) - optional, for translation support
+-  an Internet connection, as other dependencies will be downloaded automatically
 
 Sphinx is also optionally required to build the documentation from a
 cloned git repository.
 
-Additionally, running the test suite requires Python 3.5+ and the pexpect package.
+Additionally, running the full test suite requires Python 3, tmux, and the pexpect package.
 
-Building from source (all platforms) - Makefile generator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Building from source with CMake
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Rather than building from source, consider using a packaged build for your platform. Using the
+steps below makes fish difficult to uninstall or upgrade. Release packages are available from the
+links above, and up-to-date `development builds of fish are available for many platforms
+<https://github.com/fish-shell/fish-shell/wiki/Development-builds>`__
 
 To install into ``/usr/local``, run:
 
@@ -165,64 +148,50 @@ To install into ``/usr/local``, run:
 
    mkdir build; cd build
    cmake ..
-   make
-   sudo make install
+   cmake --build .
+   sudo cmake --install .
 
 The install directory can be changed using the
 ``-DCMAKE_INSTALL_PREFIX`` parameter for ``cmake``.
 
-Building from source (macOS) - Xcode
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CMake Build options
+~~~~~~~~~~~~~~~~~~~
 
-Note: The minimum supported macOS version is 10.10 "Yosemite".
+In addition to the normal CMake build options (like ``CMAKE_INSTALL_PREFIX``), fish's CMake build has some other options available to customize it.
 
-.. code:: bash
-
-   mkdir build; cd build
-   cmake .. -G Xcode
-
-An Xcode project will now be available in the ``build`` subdirectory.
-You can open it with Xcode, or run the following to build and install in
-``/usr/local``:
-
-.. code:: bash
-
-   xcodebuild
-   xcodebuild -scheme install
-
-The install directory can be changed using the
-``-DCMAKE_INSTALL_PREFIX`` parameter for ``cmake``.
-
-Build options
-~~~~~~~~~~~~~
-
-In addition to the normal cmake build options (like ``CMAKE_INSTALL_PREFIX``), fish has some other options available to customize it.
-
-- BUILD_DOCS=ON|OFF - whether to build the documentation. This is automatically set to OFF when sphinx isn't installed.
+- BUILD_DOCS=ON|OFF - whether to build the documentation. This is automatically set to OFF when Sphinx isn't installed.
 - INSTALL_DOCS=ON|OFF - whether to install the docs. This is automatically set to on when BUILD_DOCS is or prebuilt documentation is available (like when building in-tree from a tarball).
 - FISH_USE_SYSTEM_PCRE2=ON|OFF - whether to use an installed pcre2. This is normally autodetected.
 - MAC_CODESIGN_ID=String|OFF - the codesign ID to use on Mac, or "OFF" to disable codesigning.
 - WITH_GETTEXT=ON|OFF - whether to build with gettext support for translations.
+- extra_functionsdir, extra_completionsdir and extra_confdir - to compile in an additional directory to be searched for functions, completions and configuration snippets
 
-Note that fish does *not* support static linking and will attempt to error out if it detects it.
+Building fish as self-installable (experimental)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Help, it didn’t build!
-~~~~~~~~~~~~~~~~~~~~~~
+You can also build fish as a self-installing binary.
 
-If fish reports that it could not find curses, try installing a curses
-development package and build again.
+This will include all the datafiles like the included functions or web configuration tool in the main ``fish`` binary.
 
-On Debian or Ubuntu you want:
+On the first interactive run, and whenever it notices they are out of date, it will extract the datafiles to ~/.local/share/fish/install/ (currently, subject to change). You can do this manually by running ``fish --install``.
 
-::
+To install fish as self-installable, just use ``cargo``, like::
 
-   sudo apt install build-essential cmake ncurses-dev libncurses5-dev libpcre2-dev gettext
+   cargo install --path /path/to/fish # if you have a git clone
+   cargo install --git https://github.com/fish-shell/fish-shell --tag 4.0 # to build from git once 4.0 is released
+   cargo install --git https://github.com/fish-shell/fish-shell # to build the current development snapshot without cloning
 
-On RedHat, CentOS, or Amazon EC2:
+This will place the binaries in ``~/.cargo/bin/``, but you can place them wherever you want.
 
-::
+This build won't have the HTML docs (``help`` will open the online version) or translations.
 
-   sudo yum install ncurses-devel
+It will try to build the man pages with sphinx-build. If that is not available and you would like to include man pages, you need to install it and retrigger the build script, e.g. by setting FISH_BUILD_DOCS=1::
+
+  FISH_BUILD_DOCS=1 cargo install --path .
+
+Setting it to "0" disables the inclusion of man pages.
+
+You can also link this build statically (but not against glibc) and move it to other computers.
 
 Contributing Changes to the Code
 --------------------------------
@@ -234,8 +203,8 @@ Contact Us
 
 Questions, comments, rants and raves can be posted to the official fish
 mailing list at https://lists.sourceforge.net/lists/listinfo/fish-users
-or join us on our `gitter.im
-channel <https://gitter.im/fish-shell/fish-shell>`__. Or use the `fish tag
+or join us on our `matrix
+channel <https://matrix.to/#/#fish-shell:matrix.org>`__. Or use the `fish tag
 on Unix & Linux Stackexchange <https://unix.stackexchange.com/questions/tagged/fish>`__.
 There is also a fish tag on Stackoverflow, but it is typically a poor fit.
 

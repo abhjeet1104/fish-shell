@@ -1,4 +1,4 @@
-# RUN: %fish -C 'set -g fish %fish' %s
+# RUN: fish=%fish %fish %s
 # Test the umask command. In particular the symbolic modes since they've been
 # broken for four years (see issue #738) at the time I added these tests.
 
@@ -89,3 +89,10 @@ umask
 umask -S
 #CHECK: 0222
 #CHECK: u=rx,g=rx,o=rx
+
+umask u=rwx,g=rwx,o=
+umask
+#CHECK: 0007
+umask u=rwx,g=,o=rwx
+umask
+#CHECK: 0070

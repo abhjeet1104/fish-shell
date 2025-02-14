@@ -1,9 +1,25 @@
-FROM alpine:3.13
+FROM alpine:3.19
+LABEL org.opencontainers.image.source=https://github.com/fish-shell/fish-shell
 
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
-RUN apk add bash cmake g++ gettext-dev git libintl musl-dev ncurses-dev ninja python3 py3-pexpect
+RUN apk add --no-cache \
+    bash \
+    cargo \
+    cmake \
+    g++ \
+    gettext-dev \
+    git \
+    libintl \
+    musl-dev \
+    ninja \
+    pcre2-dev \
+    py3-pexpect \
+    python3 \
+    rust \
+    sudo \
+    tmux
 
 RUN addgroup -g 1000 fishuser
 

@@ -1,7 +1,7 @@
 function __fish_bind_test1
     set -l args
     set -l use_keys no
-    for i in (commandline -poc)
+    for i in (commandline -pxc)
         switch $i
             case -k --k --ke --key
                 set use_keys yes
@@ -25,7 +25,7 @@ end
 
 function __fish_bind_test2
     set -l args
-    for i in (commandline -poc)
+    for i in (commandline -pxc)
         switch $i
             case "-*"
 
@@ -57,5 +57,23 @@ complete -c bind -s s -l silent -d 'Operate silently'
 complete -c bind -l preset -d 'Operate on preset bindings'
 complete -c bind -l user -d 'Operate on user bindings'
 
-complete -c bind -n __fish_bind_test1 -a '(bind --key-names)' -d 'Key name' -x
 complete -c bind -n __fish_bind_test2 -a '(bind --function-names)' -d 'Function name' -x
+
+function __fish_bind_complete
+    argparse M/mode= m/sets-mode= preset user s/silent \
+        a/all function-names list-modes e/erase -- (commandline -xpc)[2..] 2>/dev/null
+    or return 1
+    set -l token (commandline -ct)
+    if test (count $argv) = 0 && set -l prefix (string match -r -- '(.*,)?(ctrl-|alt-|shift-)*' $token)
+        printf '%sctrl-\tCtrl modifier…\n' $prefix
+        printf '%sc-\tCtrl modifier…\n' $prefix
+        printf '%salt-\tAlt modifier…\n' $prefix
+        printf '%sa-\tAlt modifier…\n' $prefix
+        printf '%sshift-\tShift modifier…\n' $prefix
+        set -l key_names minus comma backspace delete escape \
+            enter up down left right pageup pagedown home end insert tab \
+            space menu printscreen f(seq 12)
+        printf '%s\tNamed key\n' $prefix$key_names
+    end
+end
+complete -c bind -k -a '(__fish_bind_complete)' -f

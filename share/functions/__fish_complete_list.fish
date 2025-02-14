@@ -13,18 +13,17 @@ where:
     or set -l iprefix ""
     set -q prefix[1]
     or set -l prefix ""
-    set -l pat (commandline -t)
+    set -l pat "$(commandline -t)"
     #set -l pat $argv[5]
     switch $pat
         case "*$div*"
             for i in (echo $pat | sed "s/^\(.\+$div\)$iprefix.*\$/\1/")$iprefix(eval $cmd)
-                echo $i
+                string unescape -- $i
             end
         case '*'
             for i in $prefix$iprefix(eval $cmd)
-                echo $i
+                string unescape -- $i
             end
     end
-
 
 end

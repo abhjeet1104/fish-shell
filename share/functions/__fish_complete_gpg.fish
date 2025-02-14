@@ -16,7 +16,7 @@
 # impressive.
 
 function __fish_complete_gpg -d "Internal function for gpg completion code deduplication" -a __fish_complete_gpg_command
-    if string match -q 'gpg (GnuPG) 1.*' ($__fish_complete_gpg_command --version)
+    if string match -q 'gpg (GnuPG) 1.*' ($__fish_complete_gpg_command --version 2>/dev/null)
         complete -c $__fish_complete_gpg_command -l simple-sk-checksum -d 'Integrity protect secret keys by using a SHA-1 checksum'
         complete -c $__fish_complete_gpg_command -l no-sig-create-check -d "Do not verify each signature right after creation"
         complete -c $__fish_complete_gpg_command -l pgp2 -d "Set up all options to be as PGP 2.x compliant as possible"
@@ -158,7 +158,6 @@ function __fish_complete_gpg -d "Internal function for gpg completion code dedup
     complete -c $__fish_complete_gpg_command -l warranty -d "Display warranty and exit"
     complete -c $__fish_complete_gpg_command -s h -l help -d "Display help and exit"
 
-
     #
     # gpg options
     #
@@ -263,9 +262,6 @@ function __fish_complete_gpg -d "Internal function for gpg completion code dedup
 
     complete -c $__fish_complete_gpg_command -l for-your-eyes-only -d "Set the 'for your eyes only' flag in the message"
     complete -c $__fish_complete_gpg_command -l no-for-your-eyes-only -d "Clear the 'for your eyes only' flag in the message"
-
-    complete -c $__fish_complete_gpg_command -l use-embedded-filename -d "Create file with name as given in data"
-    complete -c $__fish_complete_gpg_command -l no-use-embedded-filename -d "Don't create file with name as given in data"
 
     complete -c $__fish_complete_gpg_command -l completes-needed -x -d "Number of completely trusted users to introduce a new key signer (defaults to 1)"
     complete -c $__fish_complete_gpg_command -l marginals-needed -x -d "Number of marginally trusted users to introduce a new key signer (defaults to 3)"

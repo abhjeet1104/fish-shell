@@ -1,4 +1,4 @@
-# RUN: %fish -C 'set -g fish %fish' %s
+# RUN: fish=%fish %fish %s
 
 # caret position (#5812)
 printf '<%s>\n' ($fish -c ' $f[a]' 2>&1)
@@ -82,7 +82,7 @@ expansion "$foo"
 expansion $foo
 expansion "prefix$foo"
 expansion prefix$foo
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
 #CHECK: 1 prefix
 #CHECK: 0
@@ -91,7 +91,7 @@ expansion "$$foo"
 expansion $$foo
 expansion "prefix$$foo"
 expansion prefix$$foo
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
 #CHECK: 1 prefix
 #CHECK: 0
@@ -101,8 +101,8 @@ expansion "$foo"
 expansion $foo
 expansion "prefix$foo"
 expansion prefix$foo
-#CHECK: 1 
-#CHECK: 1 
+#CHECK: 1
+#CHECK: 1
 #CHECK: 1 prefix
 #CHECK: 1 prefix
 
@@ -110,7 +110,7 @@ expansion "$$foo"
 expansion $$foo
 expansion "prefix$$foo"
 expansion prefix$$foo
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
 #CHECK: 1 prefix
 #CHECK: 0
@@ -121,7 +121,7 @@ expansion "$$foo"
 expansion $$foo
 expansion "prefix$$foo"
 expansion prefix$$foo
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
 #CHECK: 1 prefix
 #CHECK: 0
@@ -161,7 +161,7 @@ expansion prefix$$foo
 set -l fooer ''
 expansion $$foo
 expansion prefix$$foo
-#CHECK: 3 baz quux 
+#CHECK: 3 baz quux
 #CHECK: 3 prefixbaz prefixquux prefix
 
 # Slices
@@ -201,15 +201,15 @@ expansion "$foo[1 2]"
 expansion $foo[1 2]
 expansion "$foo[2 1]"
 expansion $foo[2 1]
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
-#CHECK: 1 
+#CHECK: 1
 #CHECK: 0
 set -l foo a b c
 expansion $foo[17]
@@ -313,7 +313,7 @@ echo "Back to normal variable: $testvar" (count $testvar)
 
 # Test fatal syntax errors
 $fish -c 'echo $,foo'
-#CHECKERR: fish: $, is not a valid variable in fish.
+#CHECKERR: fish: Expected a variable name after this $.
 #CHECKERR: echo $,foo
 #CHECKERR: ^
 $fish -c 'echo {'
@@ -321,11 +321,11 @@ $fish -c 'echo {'
 #CHECKERR: echo {
 #CHECKERR: ^
 $fish -c 'echo {}}'
-#CHECKERR: fish: Unexpected '}' for unopened brace expansion
+#CHECKERR: fish: Unexpected '}' for unopened brace
 #CHECKERR: echo {}}
 #CHECKERR: ^
 printf '<%s>\n' ($fish -c 'command (asd)' 2>&1)
-#CHECK: <fish: Command substitutions not allowed>
+#CHECK: <fish: command substitutions not allowed in command position. Try var=(your-cmd) $var ...>
 #CHECK: <command (asd)>
 #CHECK: <        ^~~~^>
 true
@@ -334,3 +334,21 @@ printf '<%s>\n' ($fish -c 'echo "$abc["' 2>&1)
 #CHECK: <fish: Invalid index value>
 #CHECK: <echo "$abc[">
 #CHECK: <           ^>
+
+set -l pager command less
+echo foo | $pager
+#CHECKERR: {{.*}}checks/expansion.fish (line 339): The expanded command is a keyword.
+#CHECKERR: echo foo | $pager
+#CHECKERR:            ^~~~~^
+
+"command" -h
+#CHECKERR: fish: command: missing man page
+#CHECKERR: Documentation may not be installed.
+#CHECKERR: `help command` will show an online version
+
+echo {~,asdf}
+# CHECK: /{{.*}} asdf
+echo {asdf,~}
+# CHECK: asdf /{{.*}}
+echo {~}
+# CHECK: {~}

@@ -4,6 +4,7 @@ packages:
   - ninja
   - python
   - python-pexpect
+  - tmux
 sources:
   - https://git.sr.ht/~faho/fish
 tasks:
@@ -19,4 +20,4 @@ tasks:
           ninja
   - test: |
           cd fish/build
-          env ninja test
+          ninja test

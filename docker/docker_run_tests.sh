@@ -12,6 +12,8 @@ EOF
 
 DOCKER_EXTRA_ARGS=""
 
+export DOCKER_BUILDKIT=1
+
 # Exit on failure.
 set -e
 
@@ -38,7 +40,7 @@ DOCKERFILE=${@:$OPTIND:1}
 test -n "$DOCKERFILE" || usage
 
 # Construct a docker image.
-IMG_TAGNAME="fish_$(basename -s .Dockerfile "$DOCKERFILE")"
+IMG_TAGNAME="ghcr.io/fish-shell/fish-ci/$(basename -s .Dockerfile "$DOCKERFILE"):latest"
 docker build \
     -t "$IMG_TAGNAME" \
     -f "$DOCKERFILE" \

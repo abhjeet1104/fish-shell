@@ -1,4 +1,3 @@
-
 #completions for wpa_cli
 complete -x -c wpa_cli -a status -d 'get current WPA/EAPOL/EAP status'
 complete -x -c wpa_cli -a mib -d 'get MIB variables (dot1x, dot11)'
@@ -32,7 +31,7 @@ complete -x -c wpa_cli -a save_config -d 'save the current configuration'
 complete -x -c wpa_cli -a disconnect -d 'disconnect and wait for reassociate command before connecting'
 complete -x -c wpa_cli -a scan -d 'request new BSS scan'
 complete -x -c wpa_cli -a scan_results -d 'get latest scan results'
-complete -x -c wpa_cli -a get_capability -d 'get capabilies'
+complete -x -c wpa_cli -a get_capability -d 'get capabilities'
 complete -x -c wpa_cli -a stakey-request -d 'request STAKey negotiation with <addr>'
 complete -x -c wpa_cli -a ap_scan -d 'set ap_scan parameter'
 complete -x -c wpa_cli -a stkstart -d 'request STK negotiation with <addr>'

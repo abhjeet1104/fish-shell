@@ -8,7 +8,7 @@ Synopsis
 
 .. synopsis::
 
-    path basename GENERAL_OPTIONS [PATH ...]
+    path basename GENERAL_OPTIONS [(-E | --no-extension)] [PATH ...]
     path dirname GENERAL_OPTIONS  [PATH ...]
     path extension GENERAL_OPTIONS [PATH ...]
     path filter GENERAL_OPTIONS [-v | --invert]
@@ -55,9 +55,11 @@ The following subcommands are available.
 
 ::
 
-    path basename [-z | --null-in] [-Z | --null-out] [-q | --quiet] [PATH ...]
+    path basename [-E | --no-extension] [-z | --null-in] [-Z | --null-out] [-q | --quiet] [PATH ...]
 
 ``path basename`` returns the last path component of the given path, by removing the directory prefix and removing trailing slashes. In other words, it is the part that is not the dirname. For files you might call it the "filename".
+
+If the ``-E`` or ``---no-extension`` option is used and the base name contained a period, the path is returned with the extension (or the last extension) removed, i.e. the "filename" without an extension (akin to calling ``path change-extension "" (path basename $path)``).
 
 It returns 0 if there was a basename, i.e. if the path wasn't empty or just slashes.
 
@@ -247,7 +249,7 @@ Examples
 
 With ``--relative`` (or ``-R``), it prints the number of seconds since the modification time. It only reads the current time once at start, so in case multiple paths are given the times are all relative to the *start* of ``path mtime -R`` running.
 
-If you want to know if a file is newer or older than another file, consider using ``test -nt`` instead. See :ref:`the test documentation <cmd-test>`.
+If you want to know if a file is newer or older than another file, consider using ``test -nt`` instead. See :doc:`the test documentation <test>`.
 
 It returns 0 if reading mtime for any path succeeded.
 
@@ -277,7 +279,7 @@ Examples
 
     path normalize [-z | --null-in] [-Z | --null-out] [-q | --quiet] [PATH ...]
 
-``path normalize`` returns the normalized versions of all paths. That means it squashes duplicate "/" (except for two leading "//"), collapses "../" with earlier components and removes "." components.
+``path normalize`` returns the normalized versions of all paths. That means it squashes duplicate "/", collapses "../" with earlier components and removes "." components.
 
 Unlike ``realpath`` or ``path resolve``, it does not make the paths absolute. It also does not resolve any symlinks. As such it can operate on non-existent paths.
 
@@ -365,19 +367,15 @@ Examples
 
    >_ path change-extension '' ../banana
    ../banana
-   # but status 1, because there was no extension.
 
    >_ path change-extension '' ~/.config
    /home/alfa/.config
-   # status 1
 
    >_ path change-extension '' ~/.config.d
    /home/alfa/.config
-   # status 0
 
    >_ path change-extension '' ~/.config.
    /home/alfa/.config
-   # status 0
    
 "sort" subcommand
 -----------------------------

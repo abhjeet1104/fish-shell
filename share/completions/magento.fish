@@ -15,18 +15,22 @@ end
 ###
 
 function __fish_print_magento_modules -d "Lists all Magento modules"
-    set -l modules (magento module:status)
+    set -l config_path app/etc/config.php
+    test -f $config_path; or return
 
-    for i in $test
-        if test -n "$i" -a "$i" != None
-            echo $i
+    set -l in_modules 0
+    cat $config_path | while read -l line
+        if test "$in_modules" -eq 0
+            if string match -rq '[\'"]modules[\'"]\s*=>.*\[' -- $line
+                set in_modules 1
+            end
+        else
+            if string match -rq '^\s*]\s*,\s*$' -- $line
+                break
+            end
+            string replace -rf '\s*[\'"](.*?)[\'"]\s*=>.*' '$1' -- $line
         end
     end
-end
-
-function __fish_magento_print_indexer_modes -d "Lists all indexer modes"
-    echo realtime\t"Index in realtime"
-    echo schedule\t"Index via cron jobs"
 end
 
 function __fish_print_magento_i18n_packing_modes -d "Shows all available packing modes"
@@ -142,7 +146,6 @@ function __fish_print_magento_languages -d "Shows all existing magento languages
     echo cy_GB\t"Welsh (United Kingdom)"
 end
 
-
 function __fish_print_magento_source_theme_file_types -d "Shows all available source theme file types"
     echo less\t"Currently only LESS is supported"
 end
@@ -207,7 +210,7 @@ end
 #########################################################
 
 function __fish_magento_not_in_command -d "Checks that prompt is not inside of magento command"
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
     for i in $cmd
         if contains -- $i (__fish_print_magento_commands_list)
             return 1
@@ -224,7 +227,7 @@ end
 # in the arguments, even though if more than a single command is specified,
 # p4 will complain.
 function __fish_magento_is_using_command -d "Checks if prompt is in a specific command"
-    if contains -- $argv[1] (commandline -opc)
+    if contains -- $argv[1] (commandline -xpc)
         return 0
     end
     return 1
@@ -251,7 +254,6 @@ function __fish_magento_parameter_missing -d "Checks if a parameter has been giv
 
     return 0
 end
-
 
 ##################
 # Global options #
@@ -414,7 +416,7 @@ __fish_magento_register_command_option cron:run -f -l bootstrap -d "Add or overr
 # deploy:mode:set
 #
 __fish_magento_register_command_option deploy:mode:set -f -a "(__fish_print_magento_deploy_modes)" -d 'Application mode to set. Available are "developer" or "production"'
-__fish_magento_register_command_option deploy:mode:set -f -s s -l skip-compilation -d "Skip clearing and regeneration of static content (generated code, preprocessed CSS, and assets in pub/static/)"
+__fish_magento_register_command_option deploy:mode:set -f -s s -l skip-compilation -d "Skip regeneration of static content (generated code, preprocessed CSS, assets)"
 
 #
 # dev:source-theme:deploy
@@ -458,7 +460,7 @@ __fish_magento_register_command_option i18n:pack -s d -l allow-duplicates -d 'Us
 __fish_magento_register_command_option i18n:uninstall -f -s b -l backup-code -d 'Take code and configuration files backup (excluding temporary files)'
 __fish_magento_register_command_option i18n:uninstall -f -a "(__fish_print_magento_languages)" -d 'Language package name'
 
-# 
+#
 # info:dependencies:show-framework
 #
 __fish_magento_register_command_option info:dependencies:show-framework -f -s o -l output -d 'Report filename (default: "framework-dependencies.csv")'
@@ -484,8 +486,8 @@ __fish_magento_register_command_option maintenance:allow-ips -l none -d 'Clear a
 __fish_magento_register_command_option maintenance:disable -l ip -d "Allowed IP addresses (use 'none' to clear list)"
 
 #
-# maintenance:enable  
-# 
+# maintenance:enable
+#
 __fish_magento_register_command_option maintenance:enable -l ip -d "Allowed IP addresses (use 'none' to clear list)"
 
 #
@@ -498,11 +500,18 @@ __fish_magento_register_command_option module:disable -s c -l clear-static-conte
 
 #
 # module:enable
-# 
+#
 __fish_magento_register_command_option module:enable -f -a "(__fish_print_magento_modules)" -d "Module name"
 __fish_magento_register_command_option module:enable -f -s f -l force -d "Bypass dependencies check"
 __fish_magento_register_command_option module:enable -f -l all -d "Enable all modules"
 __fish_magento_register_command_option module:enable -f -s c -l clear-static-content -d "Clear generated static view files. Necessary if module(s) have static view files"
+
+#
+# module:status
+#
+__fish_magento_register_command_option module:status -f -a "(__fish_print_magento_modules)" -d "Module name"
+__fish_magento_register_command_option module:status -f -l enabled -d "Print only enabled modules"
+__fish_magento_register_command_option module:status -f -l disabled -d "Print only disabled modules"
 
 #
 # module:uninstall
@@ -612,7 +621,6 @@ __fish_magento_register_command_option setup:static-content:deploy -f -s a -l ar
 __fish_magento_register_command_option setup:static-content:deploy -f -l exclude-area -a "(__fish_print_magento_theme_areas)" -d 'Do not generate files for specified areas (default: "none")'
 __fish_magento_register_command_option setup:static-content:deploy -x -s j -l jobs -d "Enable parallel processing using specified number of jobs (default: 4)"
 __fish_magento_register_command_option setup:static-content:deploy -f -l symlink-locale -d "Create symlinks for files of locales which are passed for deployment but have no customizations"
-
 
 #
 # setup:store-config:set

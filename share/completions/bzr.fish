@@ -2,7 +2,6 @@
 # see https://github.com/fish-shell/fish-shell/blob/master/share/functions/__fish_seen_subcommand_from.fish
 # and https://github.com/fish-shell/fish-shell/blob/master/share/functions/__fish_use_subcommand.fish
 
-
 # help commands
 complete -f -c bzr -n __fish_use_subcommand -a help -d 'Show help'
 complete -f -c bzr -n '__fish_seen_subcommand_from help' -a topics -d 'List all help topics'
@@ -58,11 +57,11 @@ complete -f -c bzr -n __fish_use_subcommand -a diff -d 'Show detailed diffs'
 
 # merge command
 complete -f -c bzr -n __fish_use_subcommand -a merge -d 'Pull in changes from another branch'
-complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l pull -d 'If the destination is already completely merged into the source, pull from the source rather than merging'
+complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l pull -d 'If destination is already merged, pull rather than merging'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l remember -d 'Remember the specified location as a default'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l force -d 'Merge even if the destination tree has uncommitted changes'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l reprocess -d 'Reprocess to reduce spurious conflicts'
-complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l uncommited -d 'Apply uncommitted changes from a working copy, instead of branch changes'
+complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l uncommitted -d 'Apply uncommitted changes from a working copy, instead of branch changes'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l show-base -d 'Show base revision text in conflicts'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l preview -d 'Instead of merging, show a diff of the merge'
 complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l interactive -s i -d 'Select changes interactively'
@@ -72,17 +71,17 @@ complete -f -c bzr -n '__fish_seen_subcommand_from merge' -l revision -s r -d 'S
 
 # commit command
 complete -f -c bzr -n __fish_use_subcommand -a commit -d 'Save some or all changes'
-complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l show-diff -s p -d 'When no message is supplied, show the diff along with the status summary in the message editor'
+complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l show-diff -s p -d 'When no message is supplied, show diff along with status summary in message editor'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l file -s F -d 'Take commit message from this file'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l exclude -s x -d 'Do not consider changes made to a given path'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l message -s m -d 'Description of the new revision'
-complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l author -d 'Set the author\'s name, if it\'s different from the commiter'
+complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l author -d 'Set the author\'s name, if it\'s different from the committer'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l commit-time -d 'Manually set a commit time using commit date format'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l unchanged -d 'Commit even if nothing has changed'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l fixes -d 'Mark a bug as being fixed by this revision'
 complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l strict -d 'Refuse to commit if there are unknown files in the working tree'
-complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l lossy -d 'When committing to a foreign version control system do not push data that can not be natively represented'
-complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l local -d 'Perform a local commit in a bound branch.  Local commits are not pushed to the master branch until a normal commit is performed'
+complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l lossy -d 'When committing to a foreign vcs do not push data that can not be natively represented'
+complete -f -c bzr -n '__fish_seen_subcommand_from commit' -l local -d 'Perform a local commit in a bound branch (pushed to master on normal commit)'
 
 # send command
 complete -f -c bzr -n __fish_use_subcommand -a send -d 'Send changes via email'
@@ -91,7 +90,7 @@ complete -f -c bzr -n '__fish_seen_subcommand_from send' -l remember -d 'Remembe
 complete -f -c bzr -n '__fish_seen_subcommand_from send' -l mail-to -d 'Mail the request to this address'
 complete -f -c bzr -n '__fish_seen_subcommand_from send' -l format -d 'Use the specified output format'
 complete -f -c bzr -n '__fish_seen_subcommand_from send' -l no-bundle -d 'Do not include a bundle in the merge directive'
-complete -f -c bzr -n '__fish_seen_subcommand_from send' -l strict -d 'Refuse to send if there are uncommitted changes in the working tree, --no-strict disables the check'
+complete -f -c bzr -n '__fish_seen_subcommand_from send' -l strict -d 'Refuse to send if there are uncommitted changes in the working tree'
 complete -f -c bzr -n '__fish_seen_subcommand_from send' -l no-patch -d 'Do not include a preview patch in the merge directive'
 
 # log command

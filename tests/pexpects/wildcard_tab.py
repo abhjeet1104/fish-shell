@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import signal
 from pexpect_helper import SpawnedProc
 
 sp = SpawnedProc()
@@ -24,6 +23,7 @@ expect_prompt()
 
 sendline(r"cd (mktemp -d)")
 expect_prompt()
+
 
 # Helper function that sets the commandline to a glob,
 # optionally moves the cursor back, tab completes, and then clears the commandline.

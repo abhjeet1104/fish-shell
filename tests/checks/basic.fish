@@ -1,4 +1,4 @@
-# RUN: %fish -C 'set -g fish %fish' %s
+# RUN: fish=%fish %fish %s
 #
 # Test function, loops, conditionals and some basic elements
 #
@@ -157,6 +157,9 @@ echo -e 'abc\x21def'
 echo -e 'abc\x211def'
 #CHECK: abc!def
 #CHECK: abc!1def
+
+echo \UDE01
+#CHECK: �
 
 # Comments allowed in between lines (#1987)
 echo before comment \
@@ -500,7 +503,7 @@ type --query cp
 echo $status
 #CHECK: 0
 
-jobs --query 0
+jobs --query 1
 echo $status
 #CHECK: 1
 
@@ -569,23 +572,53 @@ $fish -c 'echo \utest'
 # CHECKERR: echo \utest
 # CHECKERR:      ^~~~~^
 
+echo $status
+# CHECK: 127
+
 $fish -c 'echo \c'
 # CHECKERR: fish: Incomplete escape sequence '\c'
 # CHECKERR: echo \c
 # CHECKERR:      ^^
 
+echo $status
+# CHECK: 127
+
 $fish -c 'echo \C'
 # CHECK: C
+echo $status
+# CHECK: 0
 
 $fish -c 'echo \U'
 # CHECKERR: fish: Incomplete escape sequence '\U'
 # CHECKERR: echo \U
 # CHECKERR:      ^^
 
+echo $status
+# CHECK: 127
+
 $fish -c 'echo \x'
 # CHECKERR: fish: Incomplete escape sequence '\x'
 # CHECKERR: echo \x
 # CHECKERR:      ^^
+
+echo $status
+# CHECK: 127
+
+$fish -c begin
+# CHECKERR: fish: Missing end to balance this begin
+# CHECKERR: begin
+# CHECKERR: ^~~~^
+
+echo $status
+# CHECK: 127
+
+$fish -c 'echo \ufdd2"fart"'
+# CHECKERR: fish: Invalid token '\ufdd2"fart"'
+# CHECKERR: echo \ufdd2"fart"
+# CHECKERR: ^~~~~~~~~~~^
+
+echo (printf '\ufdd2foo') | string escape
+# CHECK: \Xef\Xb7\X92foo
 
 printf '%s\n' "#!/bin/sh" 'echo $0' > $tmpdir/argv0.sh
 chmod +x $tmpdir/argv0.sh

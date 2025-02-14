@@ -1,7 +1,7 @@
 # fish completion for arc
 
 function __fish_arc_needs_command
-    set -l cmd (commandline -opc)
+    set -l cmd (commandline -xpc)
     if not set -q cmd[2]
         return 0
     else
@@ -33,9 +33,9 @@ end
 ### Global options
 complete -f -c arc -n __fish_arc_needs_command -l trace -d 'Debugging command'
 complete -f -c arc -n __fish_arc_needs_command -l no-ansi -d 'Don\'t use color or style for output'
-complete -f -c arc -n __fish_arc_needs_command -l ansi -d 'Always use fromatting'
+complete -f -c arc -n __fish_arc_needs_command -l ansi -d 'Always use formatting'
 complete -f -c arc -n __fish_arc_needs_command -l no-ansi -d 'Don\'t use color or style for output'
-complete -f -c arc -n __fish_arc_needs_command -l load-phutil-library -d 'Specify which libraies to load'
+complete -f -c arc -n __fish_arc_needs_command -l load-phutil-library -d 'Specify which libraries to load'
 complete -f -c arc -n __fish_arc_needs_command -l conduit-uri -d 'Specify the Conduit URI'
 complete -f -c arc -n __fish_arc_needs_command -l conduit-token -d 'Specify the Conduit token'
 complete -f -c arc -n __fish_arc_needs_command -l conduit-version -d 'Force a version'
